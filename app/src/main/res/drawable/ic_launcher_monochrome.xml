@@ -5,40 +5,35 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Waveform bars — 7 bars, symmetric heights, rounded ends -->
-    <!-- Bar 1 (leftmost) -->
+    <!-- Monochrome variant — system applies tint based on wallpaper -->
+
+    <!-- Waveform bars -->
     <path
-        android:fillColor="#C4B5FD"
+        android:fillColor="#000000"
         android:pathData="M30,40a2,2 0,0 1,4 0v14a2,2 0,0 1,-4 0z" />
-    <!-- Bar 2 -->
     <path
-        android:fillColor="#C4B5FD"
+        android:fillColor="#000000"
         android:pathData="M37,34a2,2 0,0 1,4 0v26a2,2 0,0 1,-4 0z" />
-    <!-- Bar 3 -->
     <path
-        android:fillColor="#C4B5FD"
+        android:fillColor="#000000"
         android:pathData="M44,28a2,2 0,0 1,4 0v38a2,2 0,0 1,-4 0z" />
-    <!-- Bar 4 (center, tallest) -->
     <path
-        android:fillColor="#C4B5FD"
+        android:fillColor="#000000"
         android:pathData="M51,24a2,2 0,0 1,4 0v46a2,2 0,0 1,-4 0z" />
-    <!-- Bar 5 -->
     <path
-        android:fillColor="#C4B5FD"
+        android:fillColor="#000000"
         android:pathData="M58,28a2,2 0,0 1,4 0v38a2,2 0,0 1,-4 0z" />
-    <!-- Bar 6 -->
     <path
-        android:fillColor="#C4B5FD"
+        android:fillColor="#000000"
         android:pathData="M65,34a2,2 0,0 1,4 0v26a2,2 0,0 1,-4 0z" />
-    <!-- Bar 7 (rightmost) -->
     <path
-        android:fillColor="#C4B5FD"
+        android:fillColor="#000000"
         android:pathData="M72,40a2,2 0,0 1,4 0v14a2,2 0,0 1,-4 0z" />
 
     <!-- Loop arrow curve -->
     <path
         android:fillColor="@android:color/transparent"
-        android:strokeColor="#C4B5FD"
+        android:strokeColor="#000000"
         android:strokeWidth="3"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
@@ -47,7 +42,7 @@
     <!-- Arrowhead -->
     <path
         android:fillColor="@android:color/transparent"
-        android:strokeColor="#C4B5FD"
+        android:strokeColor="#000000"
         android:strokeWidth="3"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
