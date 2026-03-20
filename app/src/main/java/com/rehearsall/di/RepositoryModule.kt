@@ -2,6 +2,8 @@ package com.rehearsall.di
 
 import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.AudioFileRepositoryImpl
+import com.rehearsall.data.repository.BookmarkRepository
+import com.rehearsall.data.repository.BookmarkRepositoryImpl
 import com.rehearsall.data.repository.PlaylistRepository
 import com.rehearsall.data.repository.PlaylistRepositoryImpl
 import dagger.Binds
@@ -21,4 +23,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPlaylistRepository(impl: PlaylistRepositoryImpl): PlaylistRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBookmarkRepository(impl: BookmarkRepositoryImpl): BookmarkRepository
 }

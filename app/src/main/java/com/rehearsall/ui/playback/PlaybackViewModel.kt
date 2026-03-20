@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rehearsall.data.repository.AudioFileRepository
+import com.rehearsall.data.repository.BookmarkRepository
 import com.rehearsall.data.repository.WaveformRepository
 import com.rehearsall.playback.PlaybackManager
 import com.rehearsall.playback.RepeatMode
@@ -23,6 +24,7 @@ class PlaybackViewModel @Inject constructor(
     private val playbackManager: PlaybackManager,
     private val repository: AudioFileRepository,
     private val waveformRepository: WaveformRepository,
+    private val bookmarkRepository: BookmarkRepository,
 ) : ViewModel() {
 
     private val audioFileId: Long = savedStateHandle["audioFileId"]
@@ -34,6 +36,7 @@ class PlaybackViewModel @Inject constructor(
     init {
         loadFile()
         observePlaybackState()
+        observeBookmarks()
     }
 
     private fun loadFile() {
@@ -182,6 +185,52 @@ class PlaybackViewModel @Inject constructor(
 
     fun clearQueue() {
         playbackManager.clearQueue()
+    }
+
+    // -- Bookmarks --
+
+    private fun observeBookmarks() {
+        viewModelScope.launch {
+            bookmarkRepository.getBookmarksForFile(audioFileId).collect { bookmarks ->
+                _uiState.update { it.copy(bookmarks = bookmarks) }
+            }
+        }
+    }
+
+    fun toggleMarkersSheet() {
+        _uiState.update { it.copy(showMarkersSheet = !it.showMarkersSheet) }
+    }
+
+    fun dismissMarkersSheet() {
+        _uiState.update { it.copy(showMarkersSheet = false) }
+    }
+
+    fun addBookmark() {
+        val positionMs = _uiState.value.playbackState.positionMs
+        val count = _uiState.value.bookmarks.size + 1
+        viewModelScope.launch {
+            bookmarkRepository.addBookmark(
+                audioFileId = audioFileId,
+                positionMs = positionMs,
+                name = "Bookmark $count",
+            )
+        }
+    }
+
+    fun renameBookmark(id: Long, name: String) {
+        viewModelScope.launch {
+            bookmarkRepository.renameBookmark(id, name)
+        }
+    }
+
+    fun deleteBookmark(id: Long) {
+        viewModelScope.launch {
+            bookmarkRepository.deleteBookmark(id)
+        }
+    }
+
+    fun seekToBookmark(positionMs: Long) {
+        playbackManager.seekTo(positionMs)
     }
 
     // -- Lifecycle: save position & speed when leaving --

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import com.rehearsall.data.repository.WaveformState
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.ui.common.formatDuration
+import com.rehearsall.ui.playback.components.MarkersBottomSheet
 import com.rehearsall.ui.playback.components.QueueBottomSheet
 import com.rehearsall.ui.playback.components.WaveformOverviewBar
 import com.rehearsall.ui.playback.components.WaveformView
@@ -181,9 +183,10 @@ fun PlaybackScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Speed and queue badges
+                // Speed, markers, and queue badges
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 ) {
                     FilledTonalButton(onClick = viewModel::toggleSpeedSheet) {
                         Icon(
@@ -192,6 +195,15 @@ fun PlaybackScreen(
                             modifier = Modifier.padding(end = 8.dp),
                         )
                         Text("%.2fx".format(playback.speed))
+                    }
+
+                    FilledTonalButton(onClick = viewModel::toggleMarkersSheet) {
+                        Icon(
+                            imageVector = Icons.Default.Bookmarks,
+                            contentDescription = "Markers",
+                            modifier = Modifier.padding(end = 8.dp),
+                        )
+                        Text("Markers")
                     }
 
                     FilledTonalButton(onClick = viewModel::toggleQueueSheet) {
@@ -215,6 +227,18 @@ fun PlaybackScreen(
             currentSpeed = uiState.playbackState.speed,
             onSpeedChange = viewModel::setSpeed,
             onDismiss = viewModel::dismissSpeedSheet,
+        )
+    }
+
+    // Markers bottom sheet
+    if (uiState.showMarkersSheet) {
+        MarkersBottomSheet(
+            bookmarks = uiState.bookmarks,
+            onSeekToBookmark = viewModel::seekToBookmark,
+            onAddBookmark = viewModel::addBookmark,
+            onRenameBookmark = viewModel::renameBookmark,
+            onDeleteBookmark = viewModel::deleteBookmark,
+            onDismiss = viewModel::dismissMarkersSheet,
         )
     }
 
