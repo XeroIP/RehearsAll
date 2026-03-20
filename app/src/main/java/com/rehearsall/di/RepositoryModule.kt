@@ -1,13 +1,18 @@
 package com.rehearsall.di
 
+import com.rehearsall.data.repository.AudioFileRepository
+import com.rehearsall.data.repository.AudioFileRepositoryImpl
+import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
-/**
- * Binds repository interfaces to their implementations.
- * Populated in Phase 2 as repositories are created.
- */
 @Module
 @InstallIn(SingletonComponent::class)
-object RepositoryModule
+abstract class RepositoryModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindAudioFileRepository(impl: AudioFileRepositoryImpl): AudioFileRepository
+}
