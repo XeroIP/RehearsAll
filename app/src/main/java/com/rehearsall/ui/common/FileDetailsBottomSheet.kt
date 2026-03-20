@@ -1,5 +1,6 @@
 package com.rehearsall.ui.common
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -28,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rehearsall.domain.model.AudioFile
+import com.rehearsall.domain.model.Playlist
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -35,12 +38,15 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun FileDetailsBottomSheet(
     audioFile: AudioFile,
+    playlists: List<Playlist> = emptyList(),
     onDismiss: () -> Unit,
     onRename: (String) -> Unit,
     onDelete: () -> Unit,
+    onAddToPlaylist: (Long) -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showRenameDialog by remember { mutableStateOf(false) }
+    var showPlaylistPicker by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -86,6 +92,11 @@ fun FileDetailsBottomSheet(
                     Text("Rename", modifier = Modifier.padding(start = 8.dp))
                 }
 
+                TextButton(onClick = { showPlaylistPicker = true }) {
+                    Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
+                    Text("Add to Playlist", modifier = Modifier.padding(start = 8.dp))
+                }
+
                 TextButton(
                     onClick = onDelete,
                     colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
@@ -109,6 +120,17 @@ fun FileDetailsBottomSheet(
                 onRename(newName)
             },
             onDismiss = { showRenameDialog = false },
+        )
+    }
+
+    if (showPlaylistPicker) {
+        PlaylistPickerDialog(
+            playlists = playlists,
+            onSelect = { playlistId ->
+                showPlaylistPicker = false
+                onAddToPlaylist(playlistId)
+            },
+            onDismiss = { showPlaylistPicker = false },
         )
     }
 }
@@ -161,6 +183,51 @@ private fun RenameDialog(
                 Text("Rename")
             }
         },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
+}
+
+@Composable
+private fun PlaylistPickerDialog(
+    playlists: List<Playlist>,
+    onSelect: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add to playlist") },
+        text = {
+            if (playlists.isEmpty()) {
+                Text("No playlists yet. Create one first.")
+            } else {
+                Column {
+                    playlists.forEach { playlist ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(playlist.id) }
+                                .padding(vertical = 12.dp),
+                        ) {
+                            Text(
+                                text = playlist.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = "${playlist.trackCount} tracks",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel")

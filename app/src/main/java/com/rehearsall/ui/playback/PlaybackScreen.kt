@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.ui.common.formatDuration
+import com.rehearsall.ui.playback.components.QueueBottomSheet
 import com.rehearsall.ui.playback.components.SpeedControlBottomSheet
 import com.rehearsall.ui.playback.components.TransportBar
 
@@ -148,14 +150,27 @@ fun PlaybackScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Speed badge
-                FilledTonalButton(onClick = viewModel::toggleSpeedSheet) {
-                    Icon(
-                        imageVector = Icons.Default.Speed,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
-                    Text("%.2fx".format(playback.speed))
+                // Speed and queue badges
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    FilledTonalButton(onClick = viewModel::toggleSpeedSheet) {
+                        Icon(
+                            imageVector = Icons.Default.Speed,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp),
+                        )
+                        Text("%.2fx".format(playback.speed))
+                    }
+
+                    FilledTonalButton(onClick = viewModel::toggleQueueSheet) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                            contentDescription = "Queue",
+                            modifier = Modifier.padding(end = 8.dp),
+                        )
+                        Text("Queue")
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -169,6 +184,17 @@ fun PlaybackScreen(
             currentSpeed = uiState.playbackState.speed,
             onSpeedChange = viewModel::setSpeed,
             onDismiss = viewModel::dismissSpeedSheet,
+        )
+    }
+
+    // Queue bottom sheet
+    if (uiState.showQueueSheet) {
+        QueueBottomSheet(
+            queue = uiState.queue,
+            onSkipTo = viewModel::skipToQueueItem,
+            onRemove = viewModel::removeFromQueue,
+            onClearQueue = viewModel::clearQueue,
+            onDismiss = viewModel::dismissQueueSheet,
         )
     }
 }

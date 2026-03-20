@@ -71,19 +71,28 @@ class PlaybackViewModel @Inject constructor(
                 playbackManager.playbackState,
                 playbackManager.repeatMode,
                 playbackManager.shuffleEnabled,
-            ) { playback, repeat, shuffle ->
-                Triple(playback, repeat, shuffle)
-            }.collect { (playback, repeat, shuffle) ->
+                playbackManager.currentQueue,
+            ) { playback, repeat, shuffle, queue ->
+                PlaybackCombined(playback, repeat, shuffle, queue)
+            }.collect { combined ->
                 _uiState.update {
                     it.copy(
-                        playbackState = playback,
-                        repeatMode = repeat,
-                        shuffleEnabled = shuffle,
+                        playbackState = combined.playback,
+                        repeatMode = combined.repeat,
+                        shuffleEnabled = combined.shuffle,
+                        queue = combined.queue,
                     )
                 }
             }
         }
     }
+
+    private data class PlaybackCombined(
+        val playback: com.rehearsall.playback.PlaybackState,
+        val repeat: RepeatMode,
+        val shuffle: Boolean,
+        val queue: List<com.rehearsall.domain.model.QueueItem>,
+    )
 
     // -- Transport controls --
 
@@ -138,6 +147,28 @@ class PlaybackViewModel @Inject constructor(
 
     fun dismissSpeedSheet() {
         _uiState.update { it.copy(showSpeedSheet = false) }
+    }
+
+    // -- Queue --
+
+    fun toggleQueueSheet() {
+        _uiState.update { it.copy(showQueueSheet = !it.showQueueSheet) }
+    }
+
+    fun dismissQueueSheet() {
+        _uiState.update { it.copy(showQueueSheet = false) }
+    }
+
+    fun skipToQueueItem(index: Int) {
+        playbackManager.skipToQueueItem(index)
+    }
+
+    fun removeFromQueue(index: Int) {
+        playbackManager.removeFromQueue(index)
+    }
+
+    fun clearQueue() {
+        playbackManager.clearQueue()
     }
 
     // -- Lifecycle: save position & speed when leaving --

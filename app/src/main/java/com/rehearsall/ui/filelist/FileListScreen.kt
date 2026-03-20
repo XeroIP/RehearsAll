@@ -4,7 +4,9 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +26,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlaylistPlay
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,14 +40,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -58,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.domain.model.AudioFile
+import com.rehearsall.domain.model.Playlist
 import com.rehearsall.ui.common.FileDetailsBottomSheet
 import com.rehearsall.ui.common.formatDuration
 
@@ -73,6 +80,7 @@ fun FileListScreen(
     val isImporting by viewModel.isImporting.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedFile by remember { mutableStateOf<AudioFile?>(null) }
+    var showNewPlaylistDialog by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -85,18 +93,18 @@ fun FileListScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is FileListEvent.ImportSuccess -> {
+                is FileListEvent.ImportSuccess ->
                     snackbarHostState.showSnackbar("Imported \"${event.displayName}\"")
-                }
-                is FileListEvent.ImportError -> {
+                is FileListEvent.ImportError ->
                     snackbarHostState.showSnackbar(event.message)
-                }
-                is FileListEvent.DeleteSuccess -> {
+                is FileListEvent.DeleteSuccess ->
                     snackbarHostState.showSnackbar("Deleted \"${event.displayName}\"")
-                }
-                is FileListEvent.RenameSuccess -> {
+                is FileListEvent.RenameSuccess ->
                     snackbarHostState.showSnackbar("Renamed to \"${event.newName}\"")
-                }
+                is FileListEvent.PlaylistCreated ->
+                    snackbarHostState.showSnackbar("Created \"${event.name}\"")
+                is FileListEvent.AddedToPlaylist ->
+                    snackbarHostState.showSnackbar("Added \"${event.fileName}\" to \"${event.playlistName}\"")
             }
         }
     }
@@ -106,6 +114,15 @@ fun FileListScreen(
             LargeTopAppBar(
                 title = { Text("RehearsAll") },
                 actions = {
+                    val state = uiState
+                    if (state is FileListUiState.Loaded && state.files.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.playAll() }) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Play all",
+                            )
+                        }
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -121,14 +138,8 @@ fun FileListScreen(
                 onClick = {
                     safLauncher.launch(
                         arrayOf(
-                            "audio/mpeg",       // MP3
-                            "audio/wav",        // WAV
-                            "audio/x-wav",      // WAV alt
-                            "audio/ogg",        // OGG
-                            "audio/flac",       // FLAC
-                            "audio/mp4",        // M4A/AAC
-                            "audio/x-m4a",      // M4A alt
-                            "audio/aac",        // AAC
+                            "audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg",
+                            "audio/flac", "audio/mp4", "audio/x-m4a", "audio/aac",
                         )
                     )
                 },
@@ -161,15 +172,17 @@ fun FileListScreen(
                 }
 
                 is FileListUiState.Loaded -> {
-                    if (state.files.isEmpty()) {
+                    if (state.files.isEmpty() && state.playlists.isEmpty()) {
                         EmptyState()
                     } else {
-                        FileList(
+                        CombinedList(
                             files = state.files,
+                            playlists = state.playlists,
                             onFileClick = onFileClick,
                             onFileLongClick = { file -> selectedFile = file },
-                            onDelete = { id -> viewModel.deleteFile(id) },
-                            snackbarHostState = snackbarHostState,
+                            onFileDelete = { id -> viewModel.deleteFile(id) },
+                            onPlaylistClick = onPlaylistClick,
+                            onNewPlaylist = { showNewPlaylistDialog = true },
                         )
                     }
                 }
@@ -189,9 +202,12 @@ fun FileListScreen(
         }
     }
 
+    // File details bottom sheet with "Add to Playlist"
     selectedFile?.let { file ->
+        val playlists = (uiState as? FileListUiState.Loaded)?.playlists ?: emptyList()
         FileDetailsBottomSheet(
             audioFile = file,
+            playlists = playlists,
             onDismiss = { selectedFile = null },
             onRename = { newName ->
                 viewModel.renameFile(file.id, newName)
@@ -201,6 +217,21 @@ fun FileListScreen(
                 viewModel.deleteFile(file.id)
                 selectedFile = null
             },
+            onAddToPlaylist = { playlistId ->
+                viewModel.addFileToPlaylist(file.id, playlistId)
+                selectedFile = null
+            },
+        )
+    }
+
+    // New playlist dialog
+    if (showNewPlaylistDialog) {
+        NewPlaylistDialog(
+            onConfirm = { name ->
+                showNewPlaylistDialog = false
+                viewModel.createPlaylist(name)
+            },
+            onDismiss = { showNewPlaylistDialog = false },
         )
     }
 }
@@ -236,25 +267,73 @@ private fun EmptyState() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FileList(
+private fun CombinedList(
     files: List<AudioFile>,
+    playlists: List<Playlist>,
     onFileClick: (Long) -> Unit,
     onFileLongClick: (AudioFile) -> Unit,
-    onDelete: (Long) -> Unit,
-    snackbarHostState: SnackbarHostState,
+    onFileDelete: (Long) -> Unit,
+    onPlaylistClick: (Long) -> Unit,
+    onNewPlaylist: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        // Playlists section
+        if (playlists.isNotEmpty() || true) { // Always show section for "New Playlist" button
+            item(key = "playlists-header") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Playlists",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onNewPlaylist) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("New Playlist")
+                    }
+                }
+            }
+
+            items(
+                items = playlists,
+                key = { "playlist-${it.id}" },
+            ) { playlist ->
+                PlaylistCard(
+                    playlist = playlist,
+                    onClick = { onPlaylistClick(playlist.id) },
+                )
+            }
+
+            if (files.isNotEmpty()) {
+                item(key = "files-header") {
+                    Text(
+                        text = "All Files",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+            }
+        }
+
+        // Files section
         items(
             items = files,
-            key = { it.id },
+            key = { "file-${it.id}" },
         ) { file ->
             val dismissState = rememberSwipeToDismissBoxState(
                 confirmValueChange = { value ->
                     if (value == SwipeToDismissBoxValue.EndToStart) {
-                        onDelete(file.id)
+                        onFileDelete(file.id)
                         true
                     } else {
                         false
@@ -299,7 +378,56 @@ private fun FileList(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun PlaylistCard(
+    playlist: Playlist,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.secondary,
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = playlist.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${playlist.trackCount} tracks",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Text(
+                text = formatDuration(playlist.totalDurationMs),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AudioFileCard(
     audioFile: AudioFile,
@@ -365,4 +493,39 @@ private fun AudioFileCard(
             }
         }
     }
+}
+
+@Composable
+private fun NewPlaylistDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New playlist") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name) },
+                enabled = name.isNotBlank(),
+            ) {
+                Text("Create")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }

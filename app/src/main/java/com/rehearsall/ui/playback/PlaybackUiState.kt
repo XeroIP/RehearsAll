@@ -1,5 +1,6 @@
 package com.rehearsall.ui.playback
 
+import com.rehearsall.domain.model.QueueItem
 import com.rehearsall.playback.PlaybackState
 import com.rehearsall.playback.RepeatMode
 
@@ -11,4 +12,6 @@ data class PlaybackUiState(
     val shuffleEnabled: Boolean = false,
     val isLoading: Boolean = true,
     val showSpeedSheet: Boolean = false,
+    val showQueueSheet: Boolean = false,
+    val queue: List<QueueItem> = emptyList(),
 )

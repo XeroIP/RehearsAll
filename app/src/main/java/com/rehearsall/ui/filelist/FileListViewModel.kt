@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rehearsall.data.audio.AudioImporter
 import com.rehearsall.data.repository.AudioFileRepository
+import com.rehearsall.data.repository.PlaylistRepository
+import com.rehearsall.domain.model.QueueItem
+import com.rehearsall.playback.PlaybackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
@@ -22,7 +25,9 @@ import javax.inject.Inject
 @HiltViewModel
 class FileListViewModel @Inject constructor(
     private val repository: AudioFileRepository,
+    private val playlistRepository: PlaylistRepository,
     private val importer: AudioImporter,
+    private val playbackManager: PlaybackManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<FileListUiState>(FileListUiState.Loading)
@@ -36,8 +41,12 @@ class FileListViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            repository.getAllFiles()
-                .map<_, FileListUiState> { files -> FileListUiState.Loaded(files) }
+            combine(
+                repository.getAllFiles(),
+                playlistRepository.getAllPlaylists(),
+            ) { files, playlists ->
+                FileListUiState.Loaded(files = files, playlists = playlists) as FileListUiState
+            }
                 .catch { e ->
                     Timber.e(e, "Error loading files")
                     emit(FileListUiState.Error("Failed to load files"))
@@ -68,14 +77,12 @@ class FileListViewModel @Inject constructor(
         viewModelScope.launch {
             val file = repository.getById(id) ?: return@launch
 
-            // Delete internal audio file
             try {
                 File(file.internalPath).delete()
             } catch (e: Exception) {
                 Timber.w(e, "Failed to delete audio file: %s", file.internalPath)
             }
 
-            // Delete waveform cache if it exists
             try {
                 val waveformDir = File(file.internalPath).parentFile?.parentFile
                 waveformDir?.let {
@@ -95,5 +102,41 @@ class FileListViewModel @Inject constructor(
             repository.updateDisplayName(id, newName.trim())
             _events.emit(FileListEvent.RenameSuccess(newName.trim()))
         }
+    }
+
+    fun createPlaylist(name: String) {
+        viewModelScope.launch {
+            val id = playlistRepository.createPlaylist(name.trim())
+            _events.emit(FileListEvent.PlaylistCreated(name.trim(), id))
+        }
+    }
+
+    fun addFileToPlaylist(audioFileId: Long, playlistId: Long) {
+        viewModelScope.launch {
+            val file = repository.getById(audioFileId)
+            val playlist = playlistRepository.getById(playlistId)
+            playlistRepository.addFileToPlaylist(playlistId, audioFileId)
+            _events.emit(
+                FileListEvent.AddedToPlaylist(
+                    fileName = file?.displayName ?: "File",
+                    playlistName = playlist?.name ?: "Playlist",
+                )
+            )
+        }
+    }
+
+    fun playAll() {
+        val state = _uiState.value as? FileListUiState.Loaded ?: return
+        if (state.files.isEmpty()) return
+        val queueItems = state.files.map { file ->
+            QueueItem(
+                fileId = file.id,
+                displayName = file.displayName,
+                artist = file.artist,
+                durationMs = file.durationMs,
+                path = file.internalPath,
+            )
+        }
+        playbackManager.setQueue(queueItems)
     }
 }

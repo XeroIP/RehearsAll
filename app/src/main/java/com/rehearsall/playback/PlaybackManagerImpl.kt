@@ -10,6 +10,7 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
+import com.rehearsall.domain.model.QueueItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +54,12 @@ class PlaybackManagerImpl @Inject constructor(
 
     private val _shuffleEnabled = MutableStateFlow(false)
     override val shuffleEnabled: StateFlow<Boolean> = _shuffleEnabled.asStateFlow()
+
+    private val _currentQueue = MutableStateFlow<List<QueueItem>>(emptyList())
+    override val currentQueue: StateFlow<List<QueueItem>> = _currentQueue.asStateFlow()
+
+    // Local queue metadata — kept in sync with ExoPlayer's media items
+    private val queueItems = mutableListOf<QueueItem>()
 
     init {
         connectToService()
@@ -146,6 +153,16 @@ class PlaybackManagerImpl @Inject constructor(
         // Extract fileId from MediaItem extras
         val fileId = player.currentMediaItem?.mediaId?.toLongOrNull()
         _currentFileId.value = fileId
+
+        // Update queue with now-playing indicator
+        updateQueueState(fileId)
+    }
+
+    private fun updateQueueState(currentFileId: Long?) {
+        val currentIndex = browser?.currentMediaItemIndex ?: -1
+        _currentQueue.value = queueItems.mapIndexed { index, item ->
+            item.copy(isCurrentlyPlaying = index == currentIndex)
+        }
     }
 
     private fun updatePlaybackState(player: MediaBrowser) {
@@ -218,7 +235,73 @@ class PlaybackManagerImpl @Inject constructor(
             return
         }
 
-        val mediaItem = MediaItem.Builder()
+        val mediaItem = buildMediaItem(fileId, path)
+
+        b.setMediaItem(mediaItem, startPositionMs)
+        b.prepare()
+        b.play()
+
+        queueItems.clear()
+        queueItems.add(QueueItem(fileId, "", null, 0L, path))
+        _currentFileId.value = fileId
+        updateQueueState(fileId)
+        Timber.i("Playing file id=%d from %dms", fileId, startPositionMs)
+    }
+
+    override fun setQueue(items: List<QueueItem>, startIndex: Int) {
+        val b = browser ?: return
+        val mediaItems = items.map { buildMediaItem(it.fileId, it.path) }
+
+        b.setMediaItems(mediaItems, startIndex, 0L)
+        b.prepare()
+        b.play()
+
+        queueItems.clear()
+        queueItems.addAll(items)
+        updateQueueState(items.getOrNull(startIndex)?.fileId)
+        Timber.i("Queue set: %d items, starting at index %d", items.size, startIndex)
+    }
+
+    override fun skipToQueueItem(index: Int) {
+        val b = browser ?: return
+        if (index in 0 until b.mediaItemCount) {
+            b.seekToDefaultPosition(index)
+        }
+    }
+
+    override fun removeFromQueue(index: Int) {
+        val b = browser ?: return
+        if (index in 0 until b.mediaItemCount) {
+            b.removeMediaItem(index)
+            if (index < queueItems.size) {
+                queueItems.removeAt(index)
+            }
+            updateQueueState(_currentFileId.value)
+        }
+    }
+
+    override fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        val b = browser ?: return
+        if (fromIndex in 0 until b.mediaItemCount && toIndex in 0 until b.mediaItemCount) {
+            b.moveMediaItem(fromIndex, toIndex)
+            if (fromIndex < queueItems.size && toIndex <= queueItems.size) {
+                val item = queueItems.removeAt(fromIndex)
+                queueItems.add(toIndex.coerceAtMost(queueItems.size), item)
+            }
+            updateQueueState(_currentFileId.value)
+        }
+    }
+
+    override fun clearQueue() {
+        val b = browser ?: return
+        b.clearMediaItems()
+        queueItems.clear()
+        _currentQueue.value = emptyList()
+        _currentFileId.value = null
+    }
+
+    private fun buildMediaItem(fileId: Long, path: String): MediaItem {
+        return MediaItem.Builder()
             .setMediaId(fileId.toString())
             .setUri(path)
             .setMediaMetadata(
@@ -227,13 +310,6 @@ class PlaybackManagerImpl @Inject constructor(
                     .build()
             )
             .build()
-
-        b.setMediaItem(mediaItem, startPositionMs)
-        b.prepare()
-        b.play()
-
-        _currentFileId.value = fileId
-        Timber.i("Playing file id=%d from %dms", fileId, startPositionMs)
     }
 
     override fun setRepeatMode(mode: RepeatMode) {

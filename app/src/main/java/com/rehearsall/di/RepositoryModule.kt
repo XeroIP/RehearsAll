@@ -2,6 +2,8 @@ package com.rehearsall.di
 
 import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.AudioFileRepositoryImpl
+import com.rehearsall.data.repository.PlaylistRepository
+import com.rehearsall.data.repository.PlaylistRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -15,4 +17,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAudioFileRepository(impl: AudioFileRepositoryImpl): AudioFileRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPlaylistRepository(impl: PlaylistRepositoryImpl): PlaylistRepository
 }

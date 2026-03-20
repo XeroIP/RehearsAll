@@ -1,5 +1,6 @@
 package com.rehearsall.playback
 
+import com.rehearsall.domain.model.QueueItem
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -27,7 +28,13 @@ interface PlaybackManager {
     fun setSpeed(speed: Float)
 
     // -- Queue --
+    val currentQueue: StateFlow<List<QueueItem>>
     fun playFile(fileId: Long, path: String, startPositionMs: Long = 0L)
+    fun setQueue(items: List<QueueItem>, startIndex: Int = 0)
+    fun skipToQueueItem(index: Int)
+    fun removeFromQueue(index: Int)
+    fun moveQueueItem(fromIndex: Int, toIndex: Int)
+    fun clearQueue()
     fun setRepeatMode(mode: RepeatMode)
     fun setShuffleEnabled(enabled: Boolean)
 

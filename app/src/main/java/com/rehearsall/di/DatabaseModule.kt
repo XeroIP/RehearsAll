@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.rehearsall.data.db.RehearsAllDatabase
 import com.rehearsall.data.db.dao.AudioFileDao
+import com.rehearsall.data.db.dao.PlaylistDao
+import com.rehearsall.data.db.dao.PlaylistItemDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,5 +32,15 @@ object DatabaseModule {
     @Provides
     fun provideAudioFileDao(database: RehearsAllDatabase): AudioFileDao {
         return database.audioFileDao()
+    }
+
+    @Provides
+    fun providePlaylistDao(database: RehearsAllDatabase): PlaylistDao {
+        return database.playlistDao()
+    }
+
+    @Provides
+    fun providePlaylistItemDao(database: RehearsAllDatabase): PlaylistItemDao {
+        return database.playlistItemDao()
     }
 }
