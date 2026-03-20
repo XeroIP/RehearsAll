@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rehearsall.data.repository.AudioFileRepository
+import com.rehearsall.data.repository.WaveformRepository
 import com.rehearsall.playback.PlaybackManager
 import com.rehearsall.playback.RepeatMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +22,7 @@ class PlaybackViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val playbackManager: PlaybackManager,
     private val repository: AudioFileRepository,
+    private val waveformRepository: WaveformRepository,
 ) : ViewModel() {
 
     private val audioFileId: Long = savedStateHandle["audioFileId"]
@@ -51,6 +53,9 @@ class PlaybackViewModel @Inject constructor(
                 )
             }
 
+            // Load waveform
+            loadWaveform(audioFileId, file.internalPath)
+
             // Only start playback if this file isn't already playing
             if (playbackManager.currentFileId.value != audioFileId) {
                 playbackManager.playFile(
@@ -61,6 +66,14 @@ class PlaybackViewModel @Inject constructor(
                 if (file.lastSpeed != 1.0f) {
                     playbackManager.setSpeed(file.lastSpeed)
                 }
+            }
+        }
+    }
+
+    private fun loadWaveform(fileId: Long, filePath: String) {
+        viewModelScope.launch {
+            waveformRepository.getWaveform(fileId, filePath).collect { waveformState ->
+                _uiState.update { it.copy(waveformState = waveformState) }
             }
         }
     }

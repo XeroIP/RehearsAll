@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
+import com.rehearsall.data.repository.WaveformState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -33,6 +34,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.ui.common.formatDuration
 import com.rehearsall.ui.playback.components.QueueBottomSheet
+import com.rehearsall.ui.playback.components.WaveformOverviewBar
+import com.rehearsall.ui.playback.components.WaveformView
 import com.rehearsall.ui.playback.components.SpeedControlBottomSheet
 import com.rehearsall.ui.playback.components.TransportBar
 
@@ -104,16 +107,44 @@ fun PlaybackScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Position scrubber
+                // Waveform or fallback slider
                 val playback = uiState.playbackState
                 val duration = playback.durationMs.coerceAtLeast(1L)
+                val positionFraction = if (duration > 0) {
+                    playback.positionMs.toFloat() / duration.toFloat()
+                } else 0f
 
-                Slider(
-                    value = playback.positionMs.toFloat(),
-                    onValueChange = { viewModel.seekTo(it.toLong()) },
-                    valueRange = 0f..duration.toFloat(),
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                when (val waveform = uiState.waveformState) {
+                    is WaveformState.Ready -> {
+                        WaveformView(
+                            amplitudes = waveform.amplitudes,
+                            positionFraction = positionFraction,
+                            isPlaying = playback.isPlaying,
+                            onSeek = { fraction ->
+                                viewModel.seekTo((fraction * duration).toLong())
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        WaveformOverviewBar(
+                            amplitudes = waveform.amplitudes,
+                            positionFraction = positionFraction,
+                            viewportStart = 0f, // TODO: wire actual viewport from WaveformView
+                            viewportEnd = 1f,
+                        )
+                    }
+                    else -> {
+                        // Loading or error — show simple slider
+                        Slider(
+                            value = playback.positionMs.toFloat(),
+                            onValueChange = { viewModel.seekTo(it.toLong()) },
+                            valueRange = 0f..duration.toFloat(),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
 
                 // Time labels
                 Row(

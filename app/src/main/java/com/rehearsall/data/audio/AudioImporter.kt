@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.rehearsall.data.db.entity.AudioFileEntity
 import com.rehearsall.data.repository.AudioFileRepository
+import com.rehearsall.data.repository.WaveformRepository
 import com.rehearsall.domain.model.AudioFile
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ import javax.inject.Singleton
 class AudioImporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: AudioFileRepository,
+    private val waveformRepository: WaveformRepository,
 ) {
     companion object {
         private val SUPPORTED_FORMATS = setOf("mp3", "wav", "ogg", "flac", "m4a", "aac")
@@ -73,6 +75,13 @@ class AudioImporter @Inject constructor(
 
             Timber.i("Imported '%s' (id=%d, format=%s, duration=%dms, size=%d bytes)",
                 displayName, id, extension, metadata.durationMs, fileSize)
+
+            // Extract waveform in background (non-blocking)
+            try {
+                waveformRepository.ensureCached(id, internalFile.absolutePath)
+            } catch (e: Exception) {
+                Timber.w(e, "Waveform extraction failed for '%s', will retry on playback", displayName)
+            }
 
             Result.success(audioFile)
         } catch (e: Exception) {

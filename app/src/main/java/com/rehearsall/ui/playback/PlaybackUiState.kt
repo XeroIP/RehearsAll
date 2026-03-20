@@ -1,5 +1,6 @@
 package com.rehearsall.ui.playback
 
+import com.rehearsall.data.repository.WaveformState
 import com.rehearsall.domain.model.QueueItem
 import com.rehearsall.playback.PlaybackState
 import com.rehearsall.playback.RepeatMode
@@ -14,4 +15,5 @@ data class PlaybackUiState(
     val showSpeedSheet: Boolean = false,
     val showQueueSheet: Boolean = false,
     val queue: List<QueueItem> = emptyList(),
+    val waveformState: WaveformState = WaveformState.Loading,
 )
