@@ -1,13 +1,18 @@
 package com.rehearsall.di
 
+import com.rehearsall.playback.PlaybackManager
+import com.rehearsall.playback.PlaybackManagerImpl
+import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
-/**
- * Provides PlaybackManager and audio-related dependencies.
- * Populated in Phase 3 when the playback service is created.
- */
 @Module
 @InstallIn(SingletonComponent::class)
-object AudioModule
+abstract class AudioModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindPlaybackManager(impl: PlaybackManagerImpl): PlaybackManager
+}

@@ -1,0 +1,14 @@
+package com.rehearsall.ui.playback
+
+import com.rehearsall.playback.PlaybackState
+import com.rehearsall.playback.RepeatMode
+
+data class PlaybackUiState(
+    val playbackState: PlaybackState = PlaybackState.IDLE,
+    val fileName: String = "",
+    val artist: String? = null,
+    val repeatMode: RepeatMode = RepeatMode.OFF,
+    val shuffleEnabled: Boolean = false,
+    val isLoading: Boolean = true,
+    val showSpeedSheet: Boolean = false,
+)

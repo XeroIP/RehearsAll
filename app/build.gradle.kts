@@ -98,6 +98,7 @@ dependencies {
     // Coroutines
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
+    implementation(libs.coroutines.guava)
 
     // Unit testing
     testImplementation(libs.junit)
