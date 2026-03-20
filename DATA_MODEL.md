@@ -15,11 +15,13 @@ Stores metadata for each imported audio file.
 data class AudioFileEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val fileName: String,           // original file name from SAF
-    val displayName: String,        // user-facing name (initially = fileName without extension)
+    val displayName: String,        // user-facing name (initially = embedded title or fileName without extension)
     val internalPath: String,       // path in app-internal storage
     val format: String,             // "mp3", "wav", "ogg", "flac", "m4a"
     val durationMs: Long,           // total duration in milliseconds
     val fileSizeBytes: Long,        // file size for display
+    val artist: String?,            // extracted from embedded metadata (ID3, M4A, etc.), null if absent
+    val title: String?,             // extracted from embedded metadata, null if absent
     val importedAt: Long,           // epoch millis
     val lastPlayedAt: Long?,        // epoch millis, null if never played
     val lastPositionMs: Long = 0,   // resume position
@@ -31,7 +33,9 @@ data class AudioFileEntity(
 - `insert(entity): Long`
 - `getAll(): Flow<List<AudioFileEntity>>` — ordered by `importedAt DESC`
 - `getById(id: Long): AudioFileEntity?`
+- `getRecent(limit: Int = 20): Flow<List<AudioFileEntity>>` — ordered by `lastPlayedAt DESC`, non-null only
 - `delete(id: Long)`
+- `updateDisplayName(id: Long, displayName: String)` — for user rename
 - `updateLastPlayed(id: Long, lastPlayedAt: Long, lastPositionMs: Long)`
 - `updateLastPosition(id: Long, positionMs: Long)`
 - `updateLastSpeed(id: Long, speed: Float)`
@@ -124,42 +128,27 @@ data class ChunkMarkerEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val audioFileId: Long,
     val positionMs: Long,
-    val label: String,            // e.g., "1", "Verse 1", "Line 3"
-    val orderIndex: Int,          // 0-based order for sequencing
+    val label: String,            // e.g., "Verse 1", "Line 3" — auto-generated as "1", "2", etc. on creation
     val createdAt: Long           // epoch millis
 )
 ```
 
+**No `orderIndex` field.** Chunk markers are always sorted by `positionMs` — their position in the audio determines their order. Users adjust position by dragging the marker on the waveform, not by reordering a list.
+
 **DAO operations:**
 - `insert(entity): Long`
-- `getAllForFile(audioFileId: Long): Flow<List<ChunkMarkerEntity>>` — ordered by `orderIndex ASC`
-- `update(entity)`
+- `getAllForFile(audioFileId: Long): Flow<List<ChunkMarkerEntity>>` — ordered by `positionMs ASC`
+- `update(entity)` — used when dragging a marker to a new position
 - `delete(id: Long)`
 - `deleteAllForFile(audioFileId: Long)`
-- `updateOrder(id: Long, newOrderIndex: Int)` — for reordering
 
-**Note on chunk boundaries:** Chunks are defined by the gaps between markers. Given markers at positions [M0, M1, M2, M3] and a file of duration D:
-- Chunk 0: 0 → M0
-- Chunk 1: M0 → M1
-- Chunk 2: M1 → M2
-- Chunk 3: M2 → M3
-- Chunk 4: M3 → D
+**Chunk boundary model:** Markers define **boundaries** (dividers) between chunks. With N markers you get N+1 chunks. The first chunk implicitly starts at 0, and the last chunk implicitly ends at the file duration.
 
-Actually, simpler design: markers represent chunk **start** positions. First chunk starts at 0 (implicit). Each marker starts a new chunk. Last chunk ends at file duration.
-- Markers at [M0, M1, M2]:
-  - Chunk 1: 0 → M0
-  - Chunk 2: M0 → M1
-  - Chunk 3: M1 → M2
-  - Chunk 4: M2 → duration
-
-Wait — even simpler: marker positions define **boundaries** between chunks. With N markers you get N+1 chunks:
-- Markers = [M1, M2, M3]
-- Chunk 1: 0 → M1
-- Chunk 2: M1 → M2
-- Chunk 3: M2 → M3
-- Chunk 4: M3 → end
-
-**This is the approach we use.** Markers are chunk dividers placed at transition points.
+Example — markers at positions [M1, M2, M3]:
+- Chunk 1: `0` → `M1`
+- Chunk 2: `M1` → `M2`
+- Chunk 3: `M2` → `M3`
+- Chunk 4: `M3` → `duration`
 
 ---
 
@@ -168,20 +157,110 @@ Wait — even simpler: marker positions define **boundaries** between chunks. Wi
 Per-file settings for chunked repetition practice.
 
 ```kotlin
-@Entity(tableName = "practice_settings")
+@Entity(
+    tableName = "practice_settings",
+    foreignKeys = [ForeignKey(
+        entity = AudioFileEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["audioFileId"],
+        onDelete = ForeignKey.CASCADE
+    )]
+)
 data class PracticeSettingsEntity(
     @PrimaryKey val audioFileId: Long,  // 1:1 with audio file
     val repeatCount: Int = 3,           // 1–20
-    val pauseBetweenRepsMs: Long = 0,   // 0–5000
-    val pauseBetweenChunksMs: Long = 0, // 0–10000
+    val gapBetweenRepsMs: Long = 0,     // 0–5000, silence gap between repetitions
+    val gapBetweenChunksMs: Long = 0,   // 0–10000, silence gap between steps
     val selectedMode: String = "CUMULATIVE_BUILD_UP"  // enum name
 )
 ```
+
+**Naming note:** `gapBetweenRepsMs` and `gapBetweenChunksMs` (not "pause") — these are discrete silence gaps inserted after playback stops, before the next repetition or step begins.
 
 **DAO operations:**
 - `insertOrUpdate(entity)` — `@Insert(onConflict = REPLACE)`
 - `getForFile(audioFileId: Long): PracticeSettingsEntity?`
 - `getForFileFlow(audioFileId: Long): Flow<PracticeSettingsEntity?>`
+
+---
+
+## Entity: `playlists`
+
+User-created playlists for organizing and sequencing audio files.
+
+```kotlin
+@Entity(tableName = "playlists")
+data class PlaylistEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val createdAt: Long,           // epoch millis
+    val updatedAt: Long            // epoch millis — updated when items change
+)
+```
+
+**DAO operations:**
+- `insert(entity): Long`
+- `getAll(): Flow<List<PlaylistEntity>>` — ordered by `updatedAt DESC`
+- `getById(id: Long): PlaylistEntity?`
+- `update(entity)`
+- `delete(id: Long)`
+
+---
+
+## Entity: `playlist_items`
+
+Junction table linking playlists to audio files, with ordering.
+
+```kotlin
+@Entity(
+    tableName = "playlist_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = PlaylistEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["playlistId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = AudioFileEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["audioFileId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("playlistId"), Index("audioFileId")]
+)
+data class PlaylistItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val playlistId: Long,
+    val audioFileId: Long,
+    val orderIndex: Int              // 0-based position in playlist
+)
+```
+
+**DAO operations:**
+- `insert(entity): Long`
+- `insertAll(entities: List<PlaylistItemEntity>)`
+- `getAllForPlaylist(playlistId: Long): Flow<List<PlaylistItemEntity>>` — ordered by `orderIndex ASC`
+- `getPlaylistWithFiles(playlistId: Long): Flow<List<PlaylistItemWithFile>>` — JOIN with audio_files for display
+- `delete(id: Long)`
+- `deleteAllForPlaylist(playlistId: Long)`
+- `updateOrder(id: Long, newOrderIndex: Int)` — for drag-to-reorder
+
+**`PlaylistItemWithFile`** — JOIN result class used by `getPlaylistWithFiles()`:
+
+```kotlin
+data class PlaylistItemWithFile(
+    @Embedded val item: PlaylistItemEntity,
+    @Relation(
+        parentColumn = "audioFileId",
+        entityColumn = "id"
+    )
+    val audioFile: AudioFileEntity
+)
+```
+
+**Note on cascading:** If an audio file is deleted, its `playlist_items` entries are automatically removed (CASCADE). If a playlist is deleted, all its items are removed (CASCADE). The audio files themselves are NOT deleted when a playlist is deleted.
 
 ---
 
@@ -193,10 +272,13 @@ Clean Kotlin data classes without Room annotations. Mapped at the repository lay
 data class AudioFile(
     val id: Long,
     val displayName: String,
+    val artist: String?,       // from embedded metadata
+    val title: String?,        // from embedded metadata
     val format: String,
     val durationMs: Long,
     val fileSizeBytes: Long,
     val importedAt: Instant,
+    val lastPlayedAt: Instant?, // null if never played
     val lastPositionMs: Long,
     val lastSpeed: Float
 )
@@ -217,14 +299,22 @@ data class Loop(
 data class ChunkMarker(
     val id: Long,
     val positionMs: Long,
-    val label: String,
-    val orderIndex: Int
+    val label: String
 )
+
+data class Chunk(
+    val index: Int,        // 0-based chunk number
+    val startMs: Long,
+    val endMs: Long,
+    val label: String
+)
+// Derived at runtime from chunk markers + file duration — not persisted.
+// With N markers you get N+1 chunks (see chunk boundary model above).
 
 data class PracticeSettings(
     val repeatCount: Int,
-    val pauseBetweenRepsMs: Long,
-    val pauseBetweenChunksMs: Long,
+    val gapBetweenRepsMs: Long,
+    val gapBetweenChunksMs: Long,
     val mode: PracticeMode
 )
 
@@ -233,6 +323,28 @@ enum class PracticeMode {
     CUMULATIVE_BUILD_UP,
     SEQUENTIAL_PLAY
 }
+
+data class Playlist(
+    val id: Long,
+    val name: String,
+    val trackCount: Int,
+    val totalDurationMs: Long
+)
+
+data class PlaylistItem(
+    val id: Long,
+    val audioFile: AudioFile,
+    val orderIndex: Int
+)
+
+data class QueueItem(
+    val audioFileId: Long,
+    val displayName: String,
+    val durationMs: Long,
+    val isCurrentTrack: Boolean
+)
+
+enum class RepeatMode { OFF, ONE, ALL }
 ```
 
 ---
@@ -245,23 +357,47 @@ context.filesDir/
 │   ├── {uuid1}.mp3        # Copied audio files (UUID names to avoid conflicts)
 │   ├── {uuid2}.wav
 │   └── ...
-└── waveforms/
-    ├── {audioFileId1}.waveform   # Binary amplitude data cache
-    ├── {audioFileId2}.waveform
-    └── ...
+├── waveforms/
+│   ├── {audioFileId1}.waveform   # Binary amplitude data cache
+│   ├── {audioFileId2}.waveform
+│   └── ...
+└── logs/
+    └── rehearsall.log     # Timber file log for release builds
 ```
 
 When an audio file is deleted from the app:
-1. Delete the `AudioFileEntity` from Room (cascades to bookmarks, loops, chunk markers)
+1. Delete the `AudioFileEntity` from Room (cascades to bookmarks, loops, chunk markers, playlist items)
 2. Delete the audio file from `audio/`
 3. Delete the waveform cache from `waveforms/`
+
+---
+
+## DataStore Preferences (Not Room)
+
+Lightweight user settings that don't need relational storage. Uses Jetpack DataStore (Preferences).
+
+```kotlin
+object PreferenceKeys {
+    val THEME_MODE = stringPreferencesKey("theme_mode")              // "LIGHT", "DARK", "SYSTEM"
+    val SKIP_INCREMENT_MS = longPreferencesKey("skip_increment_ms")  // default 5000
+    val LOOP_CROSSFADE = booleanPreferencesKey("loop_crossfade")     // default true
+}
+```
+
+**Why DataStore instead of Room for these?**
+DataStore is the modern replacement for SharedPreferences — it's coroutine-native, type-safe, and doesn't require schema migrations. It's the right tool for simple key-value settings. Room is for structured, relational data.
+
+```kotlin
+enum class ThemeMode { LIGHT, DARK, SYSTEM }
+```
 
 ---
 
 ## Migration Strategy
 
 - **Version 1:** `audio_files` (Phase 2)
-- **Version 2:** Add `bookmarks`, `loops` (Phases 5–6)
-- **Version 3:** Add `chunk_markers`, `practice_settings` (Phase 7)
+- **Version 2:** Add `playlists`, `playlist_items` (Phase 4)
+- **Version 3:** Add `bookmarks`, `loops` (Phases 6–7)
+- **Version 4:** Add `chunk_markers`, `practice_settings` (Phase 8)
 
 Since this is a new app with no existing users, destructive migrations (`fallbackToDestructiveMigration()`) are acceptable during development. Write proper migrations before any release.

@@ -1,11 +1,57 @@
 # RehearsAll — Playback Engine & Practice Mode Design
 
-## PlaybackManager — Detailed Design
+## Service Architecture
+
+### RehearsAllPlaybackService (MediaLibraryService)
+
+The playback engine runs as a `MediaLibraryService` — a foreground service that owns the `ExoPlayer` instance. This provides notification controls, lock screen controls, headphone/Bluetooth button handling, and Android Auto browsing from a single component.
+
+```
+App UI ──MediaBrowser──→ RehearsAllPlaybackService
+                              ├── ExoPlayer (audio playback)
+                              ├── MediaLibrarySession (media session + Auto content tree)
+                              └── Foreground notification (media controls)
+```
 
 ### Lifecycle
-- **Created** as a `@Singleton` via Hilt, lives for the app's process lifetime
-- **ExoPlayer instance** is created lazily on first `loadFile()` call
-- **Released** in `Application.onTerminate()` or when the last activity is destroyed (use `ProcessLifecycleOwner`)
+- **Service starts** when the first `MediaBrowser` connects (app UI or Android Auto)
+- **ExoPlayer** is created in `onCreate()`, lives for the service lifetime
+- **Service stops** when all clients disconnect AND playback is stopped
+- **Foreground notification** is active whenever playback is in progress
+
+### Two-Layer Design: Service-Side Engine + App-Side Wrapper
+
+**Service-side:** The `RehearsAllPlaybackService` owns the `ExoPlayer` instance and all low-level playback logic that requires direct player access — position polling, A-B loop enforcement (seek-back), and loop crossfade (volume ramping). These run service-side because they need `player.currentPosition`, `player.seekTo()`, and `player.volume`.
+
+**App-side:** `PlaybackManagerImpl` lives in the app process and communicates with the service via `MediaBrowser`/`MediaController`. It provides a clean Kotlin API so the rest of the app (ViewModels, ChunkedPracticeEngine) doesn't deal with MediaSession commands directly. It receives state updates from the service via `MediaController.Listener`.
+
+```
+RehearsAllPlaybackService (service process)
+  ├── ExoPlayer (audio playback)
+  ├── Position polling coroutine (~16ms) — A-B loop enforcement + crossfade
+  └── MediaLibrarySession (exposes state + commands)
+
+PlaybackManagerImpl (app process, @Singleton)
+  └── MediaBrowser → connects to RehearsAllPlaybackService
+        └── MediaController → sends commands, receives state updates
+```
+
+### Data Classes
+
+```kotlin
+data class PlaybackState(
+    val positionMs: Long,
+    val durationMs: Long,
+    val isPlaying: Boolean,
+    val speed: Float
+) {
+    companion object {
+        val IDLE = PlaybackState(0L, 0L, false, 1.0f)
+    }
+}
+
+data class LoopRegion(val startMs: Long, val endMs: Long)
+```
 
 ### Position Polling
 ```kotlin
@@ -55,7 +101,7 @@ Media3's ExoPlayer uses the Sonic library internally for time-stretching, which 
 
 ### A-B Loop — Edge Cases
 
-**Overshoot handling:** At 3.0x speed, in 16ms the playback advances ~48ms. The seek-back will cause a brief moment of audio past point B. This is acceptable for MVP — the overshoot is imperceptible.
+**Overshoot handling:** At 3.0x speed, in 16ms the playback advances ~48ms. The seek-back will cause a brief moment of audio past point B. This is acceptable — the overshoot is imperceptible.
 
 **Loop region near end of file:** If B is set close to the file end, ExoPlayer may report `STATE_ENDED`. The `Player.Listener.onPlaybackStateChanged` handler should seek to A and continue if loop is active:
 
@@ -69,6 +115,41 @@ override fun onPlaybackStateChanged(playbackState: Int) {
 ```
 
 **A/B ordering:** Always enforce `startMs < endMs`. If user sets B before A, swap them. Minimum loop length: 100ms (anything shorter is not useful and risks rapid seeking).
+
+**Short loop + crossfade edge case:** When a loop region is shorter than 150ms, crossfade is automatically disabled for that loop (hard seek-back used instead). A 100ms loop with a 50ms fade-out would leave no un-faded audio.
+
+### Loop Crossfade
+
+When enabled (DataStore pref `LOOP_CROSSFADE`, default `true`), the engine applies a brief volume crossfade to eliminate the audible discontinuity at the loop boundary:
+
+```kotlin
+// Inside the polling coroutine, ~50ms before reaching endMs:
+loopRegion?.let { region ->
+    val fadeStartMs = region.endMs - 50
+    if (position >= fadeStartMs && position < region.endMs) {
+        // Fade out: linear ramp 1.0 → 0.0 over 50ms
+        val fadeProgress = (position - fadeStartMs).toFloat() / 50f
+        player.volume = (1f - fadeProgress).coerceIn(0f, 1f)
+    }
+    if (position >= region.endMs) {
+        player.volume = 0f
+        player.seekTo(region.startMs)
+        // Fade in over next ~50ms (tracked by subsequent poll cycles)
+        fadeInRemainingMs = 50
+    }
+}
+
+// Fade-in logic (runs each poll cycle while fadeInRemainingMs > 0):
+if (fadeInRemainingMs > 0) {
+    fadeInRemainingMs -= 16  // approximate poll interval
+    val fadeProgress = 1f - (fadeInRemainingMs.toFloat() / 50f)
+    player.volume = fadeProgress.coerceIn(0f, 1f)
+}
+```
+
+When crossfade is disabled, the hard seek-back behavior is used (current behavior — no volume changes).
+
+**Why 50ms?** Short enough to be imperceptible as a "fade" but long enough to eliminate the click/pop at the discontinuity. At 16ms polling, that's ~3 poll cycles — enough granularity for a smooth ramp.
 
 ---
 
@@ -192,44 +273,63 @@ fun startPractice(
         for ((index, step) in steps.withIndex()) {
             currentStepIndex = index
 
-            for (rep in 1..step.repeatCount) {
-                // Update state
-                _practiceState.value = PracticeState.Playing(
-                    stepIndex = index,
-                    totalSteps = steps.size,
-                    currentRep = rep,
-                    totalReps = step.repeatCount,
-                    stepLabel = step.label,
-                    chunkRange = step.chunkRange
-                )
+            // Set up loop region — PlaybackManager's polling coroutine handles the seek-back
+            playbackManager.seekTo(step.startMs)
+            playbackManager.setLoopRegion(step.startMs, step.endMs)
+            playbackManager.play()
 
-                // Play the region once
-                playbackManager.seekTo(step.startMs)
-                playbackManager.setLoopRegion(step.startMs, step.endMs)
-                playbackManager.play()
+            // Count reps by detecting backward position jumps (see section below)
+            var repCount = 0
+            var previousPosition = step.startMs
 
-                // Wait for playback to reach endMs
-                playbackManager.playbackState
-                    .first { it.positionMs >= step.endMs - 50 }
-                // (The -50ms tolerance prevents missing the end due to polling)
+            _practiceState.value = PracticeState.Playing(
+                stepIndex = index,
+                totalSteps = steps.size,
+                currentRep = 1,
+                totalReps = step.repeatCount,
+                stepLabel = step.label,
+                chunkRange = step.chunkRange
+            )
 
-                playbackManager.pause()
+            playbackManager.playbackState.collect { state ->
+                if (previousPosition > state.positionMs + 500) {
+                    // Position jumped backward significantly → a loop iteration completed
+                    repCount++
 
-                // Pause between reps (if not the last rep)
-                if (rep < step.repeatCount && settings.pauseBetweenRepsMs > 0) {
-                    _practiceState.value = PracticeState.PauseBetweenReps(
-                        index, rep + 1, settings.pauseBetweenRepsMs
+                    if (repCount >= step.repeatCount) {
+                        playbackManager.pause()
+
+                        // Gap between steps (if not the last step)
+                        if (index < steps.lastIndex && settings.gapBetweenChunksMs > 0) {
+                            _practiceState.value = PracticeState.PauseBetweenSteps(
+                                index, steps[index + 1].label, settings.gapBetweenChunksMs
+                            )
+                            delay(settings.gapBetweenChunksMs)
+                        }
+                        return@collect // Move to next step
+                    }
+
+                    // Gap between reps (if not the last rep)
+                    if (settings.gapBetweenRepsMs > 0) {
+                        playbackManager.pause()
+                        _practiceState.value = PracticeState.PauseBetweenReps(
+                            index, repCount + 1, settings.gapBetweenRepsMs
+                        )
+                        delay(settings.gapBetweenRepsMs)
+                        playbackManager.play()
+                    }
+
+                    // Update rep counter
+                    _practiceState.value = PracticeState.Playing(
+                        stepIndex = index,
+                        totalSteps = steps.size,
+                        currentRep = repCount + 1,
+                        totalReps = step.repeatCount,
+                        stepLabel = step.label,
+                        chunkRange = step.chunkRange
                     )
-                    delay(settings.pauseBetweenRepsMs)
                 }
-            }
-
-            // Pause between steps (if not the last step)
-            if (index < steps.lastIndex && settings.pauseBetweenChunksMs > 0) {
-                _practiceState.value = PracticeState.PauseBetweenSteps(
-                    index, steps[index + 1].label, settings.pauseBetweenChunksMs
-                )
-                delay(settings.pauseBetweenChunksMs)
+                previousPosition = state.positionMs
             }
         }
 
@@ -260,31 +360,33 @@ fun skipToPreviousStep() {
 }
 ```
 
-### Repetition Detection — Alternative Approach
+### How Looping and Repetition Counting Work Together
 
-Instead of waiting for position to reach endMs (which may be unreliable with the loop mechanism), a cleaner approach:
+There are two distinct concerns — **mechanism** (who does the seek-back) and **observation** (who counts reps):
 
-1. Set loop region via PlaybackManager
-2. Let PlaybackManager's built-in loop handle the seek-back
-3. Count loop iterations by detecting when position jumps backward (from near endMs to startMs)
-4. After N iterations, advance to next step
+**1. Loop mechanism (PlaybackManager — polling coroutine):**
+The polling coroutine at ~16ms checks `position >= endMs` and seeks back to `startMs`. This is the A-B loop mechanism — it keeps audio looping within the region. It optionally applies crossfade (see above).
+
+**2. Repetition counting (ChunkedPracticeEngine — observer):**
+The practice engine doesn't control the loop directly. Instead, it observes `playbackState` and detects when position jumps backward (from near `endMs` to `startMs`), which means one loop iteration completed. After N iterations, it advances to the next step.
 
 ```kotlin
-// In the practice loop, count reps by detecting seek-backs:
+// ChunkedPracticeEngine counts reps by detecting seek-backs:
 var repCount = 0
+var previousPosition = 0L
 playbackManager.playbackState.collect { state ->
     if (previousPosition > state.positionMs + 500) {
         // Position jumped backward significantly → a loop iteration completed
         repCount++
         if (repCount >= targetReps) {
-            // Move on
+            // Pause playback, advance to next step
         }
     }
     previousPosition = state.positionMs
 }
 ```
 
-This is more robust than the `first {}` approach since it doesn't fight against the loop mechanism. **Use this approach.**
+**Why this split?** The practice engine doesn't fight with the loop mechanism. PlaybackManager handles the low-level loop; the practice engine just watches and counts. Using `first { position >= endMs }` would race against the seek-back and may miss the trigger — backward-jump detection is reliable regardless of timing.
 
 ---
 
@@ -307,13 +409,15 @@ This is more robust than the `first {}` approach since it doesn't fight against 
 ```
 
 ### Binary Format
-Simple format for fast read/write:
+Simple format for fast read/write (little-endian — native ARM byte order):
 ```
 [4 bytes] magic: "WAVE"
-[4 bytes] version: 1 (int)
-[4 bytes] sample count (int)
-[4 bytes × N] amplitude values (float array)
+[4 bytes] version: 1 (int, little-endian)
+[4 bytes] sample count (int, little-endian)
+[4 bytes × N] amplitude values (float array, little-endian)
 ```
+
+Use `ByteBuffer.order(ByteOrder.LITTLE_ENDIAN)` for read/write. Little-endian is native on ARM (all Android devices), so `ByteBuffer.allocateDirect()` avoids byte-swapping overhead.
 
 ### Performance Expectations
 - A 5-minute MP3 at 44.1kHz → ~30,000 amplitude samples
@@ -326,40 +430,41 @@ Track extraction progress as `(bytesProcessed / totalBytes)` and emit via `Flow<
 
 ---
 
-## Audio Focus — Detailed Implementation
+## Audio Focus & Interruptions
 
+With `MediaSession` and proper `AudioAttributes`, audio focus is handled **automatically** by Media3:
+- Focus requested when `player.play()` is called
+- Focus abandoned when `player.pause()` or `player.stop()` is called
+- Pause on `AUDIOFOCUS_LOSS` and `AUDIOFOCUS_LOSS_TRANSIENT`
+- Duck on `AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK`
+- Resume on `AUDIOFOCUS_GAIN`
+- Headphone disconnect (ACTION_AUDIO_BECOMING_NOISY) → automatic pause via MediaSession
+
+No manual `AudioFocusRequest` or `BroadcastReceiver` needed — the `MediaSession` handles it all.
+
+### Queue & Repeat Modes
+
+ExoPlayer natively supports playlists and repeat:
 ```kotlin
-private val audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-    .setAudioAttributes(audioAttributes)
-    .setOnAudioFocusChangeListener { focusChange ->
-        when (focusChange) {
-            AudioManager.AUDIOFOCUS_GAIN -> {
-                // Regained focus — resume if we were playing before
-                if (wasPlayingBeforeFocusLoss) {
-                    player.play()
-                    player.volume = 1.0f
-                }
-            }
-            AudioManager.AUDIOFOCUS_LOSS -> {
-                // Permanent loss — pause and give up
-                wasPlayingBeforeFocusLoss = player.isPlaying
-                player.pause()
-            }
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                // Temporary loss (phone call) — pause
-                wasPlayingBeforeFocusLoss = player.isPlaying
-                player.pause()
-            }
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                // Brief interruption (notification) — lower volume
-                player.volume = 0.2f
-            }
-        }
-    }
-    .build()
+// Set queue
+player.setMediaItems(mediaItems)
+player.prepare()
+player.play()
+
+// Repeat modes
+player.repeatMode = Player.REPEAT_MODE_OFF   // play queue once
+player.repeatMode = Player.REPEAT_MODE_ONE   // loop current track
+player.repeatMode = Player.REPEAT_MODE_ALL   // loop entire queue
+
+// Shuffle
+player.shuffleModeEnabled = true  // randomizes playback order without modifying playlist
+
+// Navigation
+player.seekToNextMediaItem()
+player.seekToPreviousMediaItem()
 ```
 
-Request focus in `play()`, abandon in `pause()`/`stop()`.
+These are automatically exposed through the `MediaSession` to notification controls, lock screen, headphone buttons, and Android Auto.
 
 ---
 
