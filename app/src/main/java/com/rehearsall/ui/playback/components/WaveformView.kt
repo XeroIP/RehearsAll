@@ -40,6 +40,9 @@ fun WaveformView(
     onSeek: (Float) -> Unit,
     modifier: Modifier = Modifier,
     height: Dp = 120.dp,
+    loopStartFraction: Float? = null,
+    loopEndFraction: Float? = null,
+    onLoopBoundaryDrag: ((isStart: Boolean, fraction: Float) -> Unit)? = null,
 ) {
     if (amplitudes.isEmpty()) return
 
@@ -52,6 +55,8 @@ fun WaveformView(
     val waveformBgColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
     val cursorColor = MaterialTheme.colorScheme.error
     val centerLineColor = MaterialTheme.colorScheme.outlineVariant
+    val loopOverlayColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+    val loopMarkerColor = MaterialTheme.colorScheme.tertiary
 
     // Auto-scroll: keep cursor in view during playback
     LaunchedEffect(positionFraction, isPlaying, zoom) {
@@ -139,6 +144,63 @@ fun WaveformView(
                 topLeft = Offset(x, centerY - barHeight / 2f),
                 size = Size(barWidth.coerceAtLeast(1f), barHeight.coerceAtLeast(1f)),
             )
+        }
+
+        // Loop region overlay
+        if (loopStartFraction != null && loopEndFraction != null && loopEndFraction > loopStartFraction) {
+            val loopLeftX = ((loopStartFraction - startFraction) / viewportWidth * canvasWidth)
+                .coerceIn(0f, canvasWidth)
+            val loopRightX = ((loopEndFraction - startFraction) / viewportWidth * canvasWidth)
+                .coerceIn(0f, canvasWidth)
+
+            if (loopRightX > loopLeftX) {
+                // Semi-transparent overlay between A and B
+                drawRect(
+                    color = loopOverlayColor,
+                    topLeft = Offset(loopLeftX, 0f),
+                    size = Size(loopRightX - loopLeftX, canvasHeight),
+                )
+
+                // A marker (left edge)
+                if (loopStartFraction in startFraction..endFraction) {
+                    drawLine(
+                        color = loopMarkerColor,
+                        start = Offset(loopLeftX, 0f),
+                        end = Offset(loopLeftX, canvasHeight),
+                        strokeWidth = 3f,
+                    )
+                    // Small triangle at top for A handle
+                    drawPath(
+                        path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(loopLeftX, 0f)
+                            lineTo(loopLeftX + 10f, 0f)
+                            lineTo(loopLeftX, 14f)
+                            close()
+                        },
+                        color = loopMarkerColor,
+                    )
+                }
+
+                // B marker (right edge)
+                if (loopEndFraction in startFraction..endFraction) {
+                    drawLine(
+                        color = loopMarkerColor,
+                        start = Offset(loopRightX, 0f),
+                        end = Offset(loopRightX, canvasHeight),
+                        strokeWidth = 3f,
+                    )
+                    // Small triangle at top for B handle
+                    drawPath(
+                        path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(loopRightX, 0f)
+                            lineTo(loopRightX - 10f, 0f)
+                            lineTo(loopRightX, 14f)
+                            close()
+                        },
+                        color = loopMarkerColor,
+                    )
+                }
+            }
         }
 
         // Playback cursor

@@ -118,6 +118,13 @@ fun PlaybackScreen(
 
                 when (val waveform = uiState.waveformState) {
                     is WaveformState.Ready -> {
+                        val loopStartFrac = uiState.activeLoop?.let {
+                            if (it.endMs > it.startMs) it.startMs.toFloat() / duration else null
+                        }
+                        val loopEndFrac = uiState.activeLoop?.let {
+                            if (it.endMs > it.startMs) it.endMs.toFloat() / duration else null
+                        }
+
                         WaveformView(
                             amplitudes = waveform.amplitudes,
                             positionFraction = positionFraction,
@@ -126,6 +133,11 @@ fun PlaybackScreen(
                                 viewModel.seekTo((fraction * duration).toLong())
                             },
                             modifier = Modifier.fillMaxWidth(),
+                            loopStartFraction = loopStartFrac,
+                            loopEndFraction = loopEndFrac,
+                            onLoopBoundaryDrag = { isStart, fraction ->
+                                viewModel.adjustLoopBoundary(isStart, (fraction * duration).toLong())
+                            },
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -234,10 +246,18 @@ fun PlaybackScreen(
     if (uiState.showMarkersSheet) {
         MarkersBottomSheet(
             bookmarks = uiState.bookmarks,
+            activeLoop = uiState.activeLoop,
+            savedLoops = uiState.savedLoops,
             onSeekToBookmark = viewModel::seekToBookmark,
             onAddBookmark = viewModel::addBookmark,
             onRenameBookmark = viewModel::renameBookmark,
             onDeleteBookmark = viewModel::deleteBookmark,
+            onSetA = viewModel::setLoopA,
+            onSetB = viewModel::setLoopB,
+            onClearLoop = viewModel::clearLoop,
+            onSaveLoop = viewModel::saveLoop,
+            onLoadLoop = viewModel::loadLoop,
+            onDeleteLoop = viewModel::deleteLoop,
             onDismiss = viewModel::dismissMarkersSheet,
         )
     }

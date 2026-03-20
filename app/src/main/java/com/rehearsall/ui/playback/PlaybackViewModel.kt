@@ -5,7 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.BookmarkRepository
+import com.rehearsall.data.repository.LoopRepository
 import com.rehearsall.data.repository.WaveformRepository
+import com.rehearsall.domain.model.Loop
+import com.rehearsall.playback.LoopRegion
 import com.rehearsall.playback.PlaybackManager
 import com.rehearsall.playback.RepeatMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +28,7 @@ class PlaybackViewModel @Inject constructor(
     private val repository: AudioFileRepository,
     private val waveformRepository: WaveformRepository,
     private val bookmarkRepository: BookmarkRepository,
+    private val loopRepository: LoopRepository,
 ) : ViewModel() {
 
     private val audioFileId: Long = savedStateHandle["audioFileId"]
@@ -37,6 +41,8 @@ class PlaybackViewModel @Inject constructor(
         loadFile()
         observePlaybackState()
         observeBookmarks()
+        observeLoops()
+        observeLoopRegion()
     }
 
     private fun loadFile() {
@@ -231,6 +237,83 @@ class PlaybackViewModel @Inject constructor(
 
     fun seekToBookmark(positionMs: Long) {
         playbackManager.seekTo(positionMs)
+    }
+
+    // -- A-B Loops --
+
+    private fun observeLoops() {
+        viewModelScope.launch {
+            loopRepository.getLoopsForFile(audioFileId).collect { loops ->
+                _uiState.update { it.copy(savedLoops = loops) }
+            }
+        }
+    }
+
+    private fun observeLoopRegion() {
+        viewModelScope.launch {
+            playbackManager.loopRegion.collect { region ->
+                _uiState.update { it.copy(activeLoop = region) }
+            }
+        }
+    }
+
+    fun setLoopA() {
+        val positionMs = _uiState.value.playbackState.positionMs
+        val current = _uiState.value.activeLoop
+        if (current != null && positionMs < current.endMs - 100) {
+            playbackManager.setLoopRegion(LoopRegion(positionMs, current.endMs))
+        } else {
+            // Store A temporarily — we'll set the full region when B is set
+            _uiState.update { it.copy(activeLoop = LoopRegion(positionMs, positionMs)) }
+        }
+    }
+
+    fun setLoopB() {
+        val positionMs = _uiState.value.playbackState.positionMs
+        val current = _uiState.value.activeLoop
+        val startMs = current?.startMs ?: 0L
+        if (positionMs > startMs + 100) {
+            playbackManager.setLoopRegion(LoopRegion(startMs, positionMs))
+        }
+    }
+
+    fun clearLoop() {
+        playbackManager.clearLoopRegion()
+    }
+
+    fun saveLoop(name: String) {
+        val region = _uiState.value.activeLoop ?: return
+        viewModelScope.launch {
+            loopRepository.saveLoop(
+                audioFileId = audioFileId,
+                name = name,
+                startMs = region.startMs,
+                endMs = region.endMs,
+            )
+        }
+    }
+
+    fun loadLoop(loop: Loop) {
+        playbackManager.setLoopRegion(LoopRegion(loop.startMs, loop.endMs))
+        playbackManager.seekTo(loop.startMs)
+    }
+
+    fun deleteLoop(id: Long) {
+        viewModelScope.launch {
+            loopRepository.deleteLoop(id)
+        }
+    }
+
+    fun adjustLoopBoundary(isStart: Boolean, newMs: Long) {
+        val current = _uiState.value.activeLoop ?: return
+        val updated = if (isStart) {
+            LoopRegion(newMs.coerceAtLeast(0), current.endMs)
+        } else {
+            LoopRegion(current.startMs, newMs.coerceAtMost(_uiState.value.playbackState.durationMs))
+        }
+        if (updated.endMs - updated.startMs >= 100) {
+            playbackManager.setLoopRegion(updated)
+        }
     }
 
     // -- Lifecycle: save position & speed when leaving --

@@ -4,10 +4,12 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.rehearsall.data.db.dao.AudioFileDao
 import com.rehearsall.data.db.dao.BookmarkDao
+import com.rehearsall.data.db.dao.LoopDao
 import com.rehearsall.data.db.dao.PlaylistDao
 import com.rehearsall.data.db.dao.PlaylistItemDao
 import com.rehearsall.data.db.entity.AudioFileEntity
 import com.rehearsall.data.db.entity.BookmarkEntity
+import com.rehearsall.data.db.entity.LoopEntity
 import com.rehearsall.data.db.entity.PlaylistEntity
 import com.rehearsall.data.db.entity.PlaylistItemEntity
 
@@ -17,8 +19,9 @@ import com.rehearsall.data.db.entity.PlaylistItemEntity
         PlaylistEntity::class,
         PlaylistItemEntity::class,
         BookmarkEntity::class,
+        LoopEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class RehearsAllDatabase : RoomDatabase() {
@@ -26,4 +29,5 @@ abstract class RehearsAllDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
     abstract fun playlistItemDao(): PlaylistItemDao
     abstract fun bookmarkDao(): BookmarkDao
+    abstract fun loopDao(): LoopDao
 }

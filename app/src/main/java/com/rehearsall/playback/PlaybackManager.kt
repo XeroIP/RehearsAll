@@ -38,7 +38,8 @@ interface PlaybackManager {
     fun setRepeatMode(mode: RepeatMode)
     fun setShuffleEnabled(enabled: Boolean)
 
-    // -- A-B loop (later phases populate UI; engine enforces here) --
+    // -- A-B loop --
+    val loopRegion: StateFlow<LoopRegion?>
     fun setLoopRegion(region: LoopRegion)
     fun clearLoopRegion()
 

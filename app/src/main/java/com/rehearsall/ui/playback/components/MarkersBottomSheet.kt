@@ -18,16 +18,26 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rehearsall.domain.model.Bookmark
+import com.rehearsall.domain.model.Loop
+import com.rehearsall.playback.LoopRegion
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarkersBottomSheet(
     bookmarks: List<Bookmark>,
+    activeLoop: LoopRegion?,
+    savedLoops: List<Loop>,
     onSeekToBookmark: (Long) -> Unit,
     onAddBookmark: () -> Unit,
     onRenameBookmark: (Long, String) -> Unit,
     onDeleteBookmark: (Long) -> Unit,
+    onSetA: () -> Unit,
+    onSetB: () -> Unit,
+    onClearLoop: () -> Unit,
+    onSaveLoop: (String) -> Unit,
+    onLoadLoop: (Loop) -> Unit,
+    onDeleteLoop: (Long) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -73,15 +83,16 @@ fun MarkersBottomSheet(
                         onRename = onRenameBookmark,
                         onDelete = onDeleteBookmark,
                     )
-                    1 -> {
-                        // Placeholder for A-B Loop tab — Phase 7
-                        Text(
-                            text = "Loop regions coming soon.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(24.dp),
-                        )
-                    }
+                    1 -> LoopTabContent(
+                        activeLoop = activeLoop,
+                        savedLoops = savedLoops,
+                        onSetA = onSetA,
+                        onSetB = onSetB,
+                        onClearLoop = onClearLoop,
+                        onSaveLoop = onSaveLoop,
+                        onLoadLoop = onLoadLoop,
+                        onDeleteLoop = onDeleteLoop,
+                    )
                 }
             }
         }

@@ -58,6 +58,9 @@ class PlaybackManagerImpl @Inject constructor(
     private val _currentQueue = MutableStateFlow<List<QueueItem>>(emptyList())
     override val currentQueue: StateFlow<List<QueueItem>> = _currentQueue.asStateFlow()
 
+    private val _loopRegion = MutableStateFlow<LoopRegion?>(null)
+    override val loopRegion: StateFlow<LoopRegion?> = _loopRegion.asStateFlow()
+
     // Local queue metadata — kept in sync with ExoPlayer's media items
     private val queueItems = mutableListOf<QueueItem>()
 
@@ -334,6 +337,7 @@ class PlaybackManagerImpl @Inject constructor(
             SessionCommand(RehearsAllPlaybackService.CMD_SET_LOOP_REGION, Bundle.EMPTY),
             args,
         )
+        _loopRegion.value = region
     }
 
     override fun clearLoopRegion() {
@@ -342,6 +346,7 @@ class PlaybackManagerImpl @Inject constructor(
             SessionCommand(RehearsAllPlaybackService.CMD_CLEAR_LOOP_REGION, Bundle.EMPTY),
             Bundle.EMPTY,
         )
+        _loopRegion.value = null
     }
 
     // -- Lifecycle --
