@@ -24,6 +24,15 @@ interface AudioFileDao {
     )
     fun getRecent(limit: Int = 20): Flow<List<AudioFileEntity>>
 
+    @Query("SELECT * FROM audio_files ORDER BY importedAt DESC")
+    suspend fun getAllList(): List<AudioFileEntity>
+
+    @Query(
+        "SELECT * FROM audio_files WHERE lastPlayedAt IS NOT NULL " +
+            "ORDER BY lastPlayedAt DESC LIMIT :limit"
+    )
+    suspend fun getRecentList(limit: Int = 20): List<AudioFileEntity>
+
     @Query("DELETE FROM audio_files WHERE id = :id")
     suspend fun delete(id: Long)
 

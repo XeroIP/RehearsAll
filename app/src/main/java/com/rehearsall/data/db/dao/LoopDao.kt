@@ -15,6 +15,9 @@ interface LoopDao {
     @Query("SELECT * FROM loops WHERE audioFileId = :audioFileId ORDER BY createdAt DESC")
     fun getAllForFile(audioFileId: Long): Flow<List<LoopEntity>>
 
+    @Query("SELECT * FROM loops WHERE audioFileId = :audioFileId ORDER BY createdAt DESC")
+    suspend fun getAllForFileList(audioFileId: Long): List<LoopEntity>
+
     @Query("SELECT * FROM loops WHERE id = :id")
     suspend fun getById(id: Long): LoopEntity?
 

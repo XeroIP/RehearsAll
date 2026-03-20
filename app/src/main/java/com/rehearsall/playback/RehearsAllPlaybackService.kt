@@ -11,12 +11,25 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.rehearsall.data.db.dao.AudioFileDao
+import com.rehearsall.data.db.dao.LoopDao
+import com.rehearsall.data.db.dao.PlaylistDao
+import com.rehearsall.data.db.dao.PlaylistItemDao
+import com.rehearsall.di.ServiceEntryPoint
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.guava.future
 import timber.log.Timber
 
 /**
@@ -25,11 +38,12 @@ import timber.log.Timber
  * Architecture note: all direct player access (polling, A-B loop enforcement,
  * crossfade) lives here. The app-side PlaybackManagerImpl communicates via
  * MediaController commands only.
+ *
+ * Also serves the Android Auto content tree via MediaLibrarySession.Callback.
  */
 class RehearsAllPlaybackService : MediaLibraryService() {
 
     companion object {
-        // Custom session commands for features not in standard MediaController API
         const val CMD_SET_SPEED = "com.rehearsall.CMD_SET_SPEED"
         const val CMD_GET_SPEED = "com.rehearsall.CMD_GET_SPEED"
         const val CMD_SET_LOOP_REGION = "com.rehearsall.CMD_SET_LOOP_REGION"
@@ -41,14 +55,32 @@ class RehearsAllPlaybackService : MediaLibraryService() {
 
     private var player: ExoPlayer? = null
     private var session: MediaLibrarySession? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // A-B loop state — enforced in the player listener
     private var loopRegion: LoopRegion? = null
+
+    // Content tree for Android Auto browsing
+    private lateinit var contentTreeBuilder: ContentTreeBuilder
+    private lateinit var loopActionHandler: LoopActionHandler
 
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
         Timber.i("PlaybackService created")
+
+        // Access DAOs via Hilt EntryPoint (service can't use @AndroidEntryPoint with MediaLibraryService)
+        val entryPoint = EntryPointAccessors.fromApplication(
+            applicationContext,
+            ServiceEntryPoint::class.java,
+        )
+        contentTreeBuilder = ContentTreeBuilder(
+            audioFileDao = entryPoint.audioFileDao(),
+            playlistDao = entryPoint.playlistDao(),
+            playlistItemDao = entryPoint.playlistItemDao(),
+            loopDao = entryPoint.loopDao(),
+        )
+        loopActionHandler = LoopActionHandler(entryPoint.loopDao())
 
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
@@ -62,7 +94,6 @@ class RehearsAllPlaybackService : MediaLibraryService() {
 
         exoPlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                // When track ends near a loop region, seek back and resume
                 if (playbackState == Player.STATE_ENDED && loopRegion != null) {
                     val region = loopRegion ?: return
                     exoPlayer.seekTo(region.startMs)
@@ -75,14 +106,12 @@ class RehearsAllPlaybackService : MediaLibraryService() {
                 newPosition: Player.PositionInfo,
                 reason: Int,
             ) {
-                // Enforce A-B loop boundary during normal playback
                 enforceLoopBoundary(exoPlayer)
             }
         })
 
         player = exoPlayer
 
-        // PendingIntent to reopen the app when tapping the notification
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
@@ -108,6 +137,7 @@ class RehearsAllPlaybackService : MediaLibraryService() {
 
     override fun onDestroy() {
         Timber.i("PlaybackService destroyed")
+        serviceScope.cancel()
         session?.run {
             player.release()
             release()
@@ -126,8 +156,8 @@ class RehearsAllPlaybackService : MediaLibraryService() {
     }
 
     /**
-     * Callback that handles custom session commands (speed, A-B loop)
-     * and validates connecting controllers.
+     * Callback that handles media browsing (Android Auto), custom session commands,
+     * search, and loop-aware playback.
      */
     @OptIn(UnstableApi::class)
     private inner class LibrarySessionCallback : MediaLibrarySession.Callback {
@@ -136,19 +166,116 @@ class RehearsAllPlaybackService : MediaLibraryService() {
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
         ): MediaSession.ConnectionResult {
-            // Allow own package and system UI (notifications, Auto)
             val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
                 .buildUpon()
                 .add(SessionCommand(CMD_SET_SPEED, Bundle.EMPTY))
                 .add(SessionCommand(CMD_GET_SPEED, Bundle.EMPTY))
                 .add(SessionCommand(CMD_SET_LOOP_REGION, Bundle.EMPTY))
                 .add(SessionCommand(CMD_CLEAR_LOOP_REGION, Bundle.EMPTY))
+                .add(SessionCommand(LoopActionHandler.ACTION_TOGGLE_LOOP, Bundle.EMPTY))
                 .build()
 
             return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                 .setAvailableSessionCommands(sessionCommands)
                 .build()
         }
+
+        // -- Content tree browsing --
+
+        override fun onGetLibraryRoot(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            params: LibraryParams?,
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            val rootItem = MediaItemMapper.browsableFolder(ContentTreeBuilder.ROOT_ID, "RehearsAll")
+            return Futures.immediateFuture(LibraryResult.ofItem(rootItem, params))
+        }
+
+        override fun onGetChildren(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?,
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            return serviceScope.future {
+                val children = contentTreeBuilder.getChildren(parentId)
+                LibraryResult.ofItemList(ImmutableList.copyOf(children), params)
+            }
+        }
+
+        override fun onGetItem(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            mediaId: String,
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            return serviceScope.future {
+                val item = contentTreeBuilder.getItem(mediaId)
+                if (item != null) {
+                    LibraryResult.ofItem(item, null)
+                } else {
+                    LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                }
+            }
+        }
+
+        override fun onSearch(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            query: String,
+            params: LibraryParams?,
+        ): ListenableFuture<LibraryResult<Void>> {
+            serviceScope.future {
+                val results = contentTreeBuilder.search(query)
+                session.notifySearchResultChanged(browser, query, results.size, params)
+            }
+            return Futures.immediateFuture(LibraryResult.ofVoid())
+        }
+
+        override fun onGetSearchResult(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            query: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?,
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            return serviceScope.future {
+                val results = contentTreeBuilder.search(query)
+                LibraryResult.ofItemList(ImmutableList.copyOf(results), params)
+            }
+        }
+
+        // -- Playback: handle item selection with loop awareness --
+
+        override fun onAddMediaItems(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: MutableList<MediaItem>,
+        ): ListenableFuture<MutableList<MediaItem>> {
+            return serviceScope.future {
+                // Resolve media items — add URI and handle loop activation
+                val resolved = mediaItems.map { item ->
+                    val resolvedItem = contentTreeBuilder.getItem(item.mediaId) ?: item
+
+                    // If this is a loop item, activate the loop region
+                    val loopInfo = loopActionHandler.parseLoopFromMediaItem(resolvedItem)
+                    if (loopInfo != null) {
+                        loopRegion = loopInfo
+                        Timber.d("Auto: activated loop %d-%d ms", loopInfo.startMs, loopInfo.endMs)
+                    } else if (item.mediaId.endsWith(":full") || !item.mediaId.contains(":loop:")) {
+                        // Full track or regular file — clear any active loop
+                        loopRegion = null
+                    }
+
+                    resolvedItem
+                }
+                resolved.toMutableList()
+            }
+        }
+
+        // -- Custom commands --
 
         override fun onCustomCommand(
             session: MediaSession,
@@ -191,6 +318,19 @@ class RehearsAllPlaybackService : MediaLibraryService() {
                     loopRegion = null
                     Timber.d("Loop region cleared")
                     Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+
+                LoopActionHandler.ACTION_TOGGLE_LOOP -> {
+                    serviceScope.future {
+                        val currentFileId = p.currentMediaItem?.mediaId
+                            ?.removePrefix("file:")
+                            ?.split(":")
+                            ?.firstOrNull()
+                            ?.toLongOrNull()
+                        val newRegion = loopActionHandler.handleToggle(currentFileId, loopRegion)
+                        loopRegion = newRegion
+                        SessionResult(SessionResult.RESULT_SUCCESS)
+                    }
                 }
 
                 else -> Futures.immediateFuture(
