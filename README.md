@@ -39,6 +39,12 @@ The playback architecture separates concerns:
 - **Service side** (`RehearsAllPlaybackService`) — owns the ExoPlayer, enforces loop regions, serves the Android Auto content tree
 - **App side** (`PlaybackManagerImpl`) — communicates via `MediaController` commands only, polls position at ~60fps
 
+## Documentation
+
+- [User Guide](docs/USER_GUIDE.md) — Full feature walkthrough
+- [Practice Modes](docs/PRACTICE_MODES.md) — Deep dive on the three practice modes
+- [Security](docs/SECURITY.md) — OWASP Mobile Top 10 security overview
+
 ## Building
 
 ### Prerequisites
