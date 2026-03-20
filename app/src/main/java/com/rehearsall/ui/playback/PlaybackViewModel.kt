@@ -3,6 +3,7 @@ package com.rehearsall.ui.playback
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rehearsall.data.preferences.UserPreferencesRepository
 import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.BookmarkRepository
 import com.rehearsall.data.repository.ChunkMarkerRepository
@@ -19,9 +20,11 @@ import com.rehearsall.playback.PlaybackManager
 import com.rehearsall.playback.RepeatMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -38,6 +41,7 @@ class PlaybackViewModel @Inject constructor(
     private val chunkMarkerRepository: ChunkMarkerRepository,
     private val practiceSettingsRepository: PracticeSettingsRepository,
     private val practiceEngine: ChunkedPracticeEngine,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val audioFileId: Long = savedStateHandle["audioFileId"]
@@ -45,6 +49,9 @@ class PlaybackViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(PlaybackUiState())
     val uiState: StateFlow<PlaybackUiState> = _uiState.asStateFlow()
+
+    private val skipIncrementMs: StateFlow<Long> = userPreferencesRepository.skipIncrementMs
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 5000L)
 
     init {
         loadFile()
@@ -143,11 +150,11 @@ class PlaybackViewModel @Inject constructor(
     }
 
     fun skipForward() {
-        playbackManager.skipForward(10_000) // 10s default, configurable in settings later
+        playbackManager.skipForward(skipIncrementMs.value)
     }
 
     fun skipBackward() {
-        playbackManager.skipBackward(10_000)
+        playbackManager.skipBackward(skipIncrementMs.value)
     }
 
     fun skipToNext() {
