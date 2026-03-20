@@ -13,6 +13,7 @@ import com.rehearsall.data.repository.WaveformRepository
 import com.rehearsall.domain.model.Loop
 import com.rehearsall.domain.model.PracticeMode
 import com.rehearsall.domain.model.PracticeSettings
+import java.io.File
 import com.rehearsall.domain.usecase.GeneratePracticeStepsUseCase
 import com.rehearsall.playback.ChunkedPracticeEngine
 import com.rehearsall.playback.LoopRegion
@@ -62,14 +63,36 @@ class PlaybackViewModel @Inject constructor(
         observeChunkMarkers()
         observePracticeState()
         loadPracticeSettings()
+        observeSkipIncrement()
     }
 
     private fun loadFile() {
         viewModelScope.launch {
             val file = repository.getById(audioFileId)
             if (file == null) {
-                Timber.w("Audio file not found: id=%d", audioFileId)
-                _uiState.update { it.copy(isLoading = false, fileName = "File not found") }
+                Timber.w("Audio file not found in database: id=%d", audioFileId)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        fileName = "File not found",
+                        fileNotFound = true,
+                        errorMessage = "This file no longer exists",
+                    )
+                }
+                return@launch
+            }
+
+            // Verify the audio file still exists on disk
+            if (!File(file.internalPath).exists()) {
+                Timber.w("Audio file missing from disk: id=%d path=%s", audioFileId, file.internalPath)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        fileName = file.displayName,
+                        fileNotFound = true,
+                        errorMessage = "Audio file was deleted externally. Remove from library?",
+                    )
+                }
                 return@launch
             }
 
@@ -94,6 +117,25 @@ class PlaybackViewModel @Inject constructor(
                 if (file.lastSpeed != 1.0f) {
                     playbackManager.setSpeed(file.lastSpeed)
                 }
+            }
+        }
+    }
+
+    fun removeDeletedFile() {
+        viewModelScope.launch {
+            repository.delete(audioFileId)
+            Timber.i("Removed missing file from library: id=%d", audioFileId)
+        }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun observeSkipIncrement() {
+        viewModelScope.launch {
+            skipIncrementMs.collect { ms ->
+                _uiState.update { it.copy(skipIncrementMs = ms) }
             }
         }
     }

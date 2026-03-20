@@ -18,6 +18,8 @@ data class PlaybackUiState(
     val repeatMode: RepeatMode = RepeatMode.OFF,
     val shuffleEnabled: Boolean = false,
     val isLoading: Boolean = true,
+    val errorMessage: String? = null,
+    val fileNotFound: Boolean = false,
     val showSpeedSheet: Boolean = false,
     val showQueueSheet: Boolean = false,
     val showMarkersSheet: Boolean = false,
@@ -30,4 +32,5 @@ data class PlaybackUiState(
     val practiceState: PracticeState = PracticeState.Idle,
     val practiceSettings: PracticeSettings = PracticeSettings(),
     val waveformState: WaveformState = WaveformState.Loading,
+    val skipIncrementMs: Long = 5000L,
 )

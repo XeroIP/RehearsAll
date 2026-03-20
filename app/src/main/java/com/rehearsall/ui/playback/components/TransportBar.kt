@@ -39,6 +39,7 @@ fun TransportBar(
     onCycleRepeat: () -> Unit,
     onToggleShuffle: () -> Unit,
     modifier: Modifier = Modifier,
+    skipIncrementLabel: String = "5 seconds",
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -74,7 +75,7 @@ fun TransportBar(
         IconButton(onClick = onSkipBackward) {
             Icon(
                 imageVector = Icons.Default.FastRewind,
-                contentDescription = "Skip back 10 seconds",
+                contentDescription = "Skip back $skipIncrementLabel",
             )
         }
 
@@ -96,7 +97,7 @@ fun TransportBar(
         IconButton(onClick = onSkipForward) {
             Icon(
                 imageVector = Icons.Default.FastForward,
-                contentDescription = "Skip forward 10 seconds",
+                contentDescription = "Skip forward $skipIncrementLabel",
             )
         }
 
