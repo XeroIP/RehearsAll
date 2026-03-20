@@ -18,6 +18,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rehearsall.domain.model.Bookmark
+import com.rehearsall.domain.model.ChunkMarker
 import com.rehearsall.domain.model.Loop
 import com.rehearsall.playback.LoopRegion
 import kotlinx.coroutines.launch
@@ -38,13 +39,18 @@ fun MarkersBottomSheet(
     onSaveLoop: (String) -> Unit,
     onLoadLoop: (Loop) -> Unit,
     onDeleteLoop: (Long) -> Unit,
+    chunkMarkers: List<ChunkMarker>,
+    onSeekToChunk: (Long) -> Unit,
+    onAddChunkMarker: () -> Unit,
+    onDeleteChunkMarker: (Long) -> Unit,
+    onStartPractice: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
 
-    val tabs = listOf("Bookmarks", "Loops")
+    val tabs = listOf("Bookmarks", "Loops", "Chunks")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -92,6 +98,13 @@ fun MarkersBottomSheet(
                         onSaveLoop = onSaveLoop,
                         onLoadLoop = onLoadLoop,
                         onDeleteLoop = onDeleteLoop,
+                    )
+                    2 -> ChunkTabContent(
+                        markers = chunkMarkers,
+                        onSeekTo = onSeekToChunk,
+                        onAddMarker = onAddChunkMarker,
+                        onDeleteMarker = onDeleteChunkMarker,
+                        onStartPractice = onStartPractice,
                     )
                 }
             }

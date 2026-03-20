@@ -5,9 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.BookmarkRepository
+import com.rehearsall.data.repository.ChunkMarkerRepository
 import com.rehearsall.data.repository.LoopRepository
+import com.rehearsall.data.repository.PracticeSettingsRepository
 import com.rehearsall.data.repository.WaveformRepository
 import com.rehearsall.domain.model.Loop
+import com.rehearsall.domain.model.PracticeMode
+import com.rehearsall.domain.model.PracticeSettings
+import com.rehearsall.domain.usecase.GeneratePracticeStepsUseCase
+import com.rehearsall.playback.ChunkedPracticeEngine
 import com.rehearsall.playback.LoopRegion
 import com.rehearsall.playback.PlaybackManager
 import com.rehearsall.playback.RepeatMode
@@ -29,6 +35,9 @@ class PlaybackViewModel @Inject constructor(
     private val waveformRepository: WaveformRepository,
     private val bookmarkRepository: BookmarkRepository,
     private val loopRepository: LoopRepository,
+    private val chunkMarkerRepository: ChunkMarkerRepository,
+    private val practiceSettingsRepository: PracticeSettingsRepository,
+    private val practiceEngine: ChunkedPracticeEngine,
 ) : ViewModel() {
 
     private val audioFileId: Long = savedStateHandle["audioFileId"]
@@ -43,6 +52,9 @@ class PlaybackViewModel @Inject constructor(
         observeBookmarks()
         observeLoops()
         observeLoopRegion()
+        observeChunkMarkers()
+        observePracticeState()
+        loadPracticeSettings()
     }
 
     private fun loadFile() {
@@ -314,6 +326,120 @@ class PlaybackViewModel @Inject constructor(
         if (updated.endMs - updated.startMs >= 100) {
             playbackManager.setLoopRegion(updated)
         }
+    }
+
+    // -- Chunks & Practice --
+
+    private fun observeChunkMarkers() {
+        viewModelScope.launch {
+            chunkMarkerRepository.getMarkersForFile(audioFileId).collect { markers ->
+                _uiState.update { it.copy(chunkMarkers = markers) }
+            }
+        }
+    }
+
+    private fun observePracticeState() {
+        viewModelScope.launch {
+            practiceEngine.state.collect { state ->
+                _uiState.update { it.copy(practiceState = state) }
+            }
+        }
+    }
+
+    private fun loadPracticeSettings() {
+        viewModelScope.launch {
+            val settings = practiceSettingsRepository.getForFile(audioFileId)
+            _uiState.update { it.copy(practiceSettings = settings) }
+        }
+    }
+
+    fun addChunkMarker() {
+        val positionMs = _uiState.value.playbackState.positionMs
+        val count = _uiState.value.chunkMarkers.size + 1
+        viewModelScope.launch {
+            chunkMarkerRepository.addMarker(
+                audioFileId = audioFileId,
+                positionMs = positionMs,
+                label = "Marker $count",
+            )
+        }
+    }
+
+    fun deleteChunkMarker(id: Long) {
+        viewModelScope.launch {
+            chunkMarkerRepository.deleteMarker(id)
+        }
+    }
+
+    fun seekToChunk(positionMs: Long) {
+        playbackManager.seekTo(positionMs)
+    }
+
+    fun togglePracticeSheet() {
+        _uiState.update { it.copy(showPracticeSheet = !it.showPracticeSheet) }
+    }
+
+    fun dismissPracticeSheet() {
+        _uiState.update { it.copy(showPracticeSheet = false) }
+    }
+
+    fun updatePracticeMode(mode: PracticeMode) {
+        val updated = _uiState.value.practiceSettings.copy(mode = mode)
+        _uiState.update { it.copy(practiceSettings = updated) }
+        savePracticeSettings(updated)
+    }
+
+    fun updateRepeatCount(count: Int) {
+        val updated = _uiState.value.practiceSettings.copy(repeatCount = count)
+        _uiState.update { it.copy(practiceSettings = updated) }
+        savePracticeSettings(updated)
+    }
+
+    fun updateGapBetweenReps(ms: Long) {
+        val updated = _uiState.value.practiceSettings.copy(gapBetweenRepsMs = ms)
+        _uiState.update { it.copy(practiceSettings = updated) }
+        savePracticeSettings(updated)
+    }
+
+    fun updateGapBetweenChunks(ms: Long) {
+        val updated = _uiState.value.practiceSettings.copy(gapBetweenChunksMs = ms)
+        _uiState.update { it.copy(practiceSettings = updated) }
+        savePracticeSettings(updated)
+    }
+
+    private fun savePracticeSettings(settings: PracticeSettings) {
+        viewModelScope.launch {
+            practiceSettingsRepository.save(audioFileId, settings)
+        }
+    }
+
+    fun startPractice() {
+        val markers = _uiState.value.chunkMarkers
+        val settings = _uiState.value.practiceSettings
+        val durationMs = _uiState.value.playbackState.durationMs
+
+        val steps = when (settings.mode) {
+            PracticeMode.SINGLE_CHUNK_LOOP ->
+                GeneratePracticeStepsUseCase.generateSingleChunkSteps(markers, durationMs, settings.repeatCount)
+            PracticeMode.CUMULATIVE_BUILD_UP ->
+                GeneratePracticeStepsUseCase.generateCumulativeBuildUpSteps(markers, durationMs, settings.repeatCount)
+            PracticeMode.SEQUENTIAL_PLAY ->
+                GeneratePracticeStepsUseCase.generateSequentialSteps(markers, durationMs)
+        }
+
+        practiceEngine.startPractice(steps, settings, viewModelScope)
+    }
+
+    fun stopPractice() {
+        practiceEngine.stopPractice()
+    }
+
+    fun practiceSkipNext() {
+        practiceEngine.skipToNextStep()
+    }
+
+    fun practiceSkipPrevious() {
+        practiceEngine.skipToPreviousStep()
     }
 
     // -- Lifecycle: save position & speed when leaving --

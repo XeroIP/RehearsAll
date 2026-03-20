@@ -43,6 +43,9 @@ fun WaveformView(
     loopStartFraction: Float? = null,
     loopEndFraction: Float? = null,
     onLoopBoundaryDrag: ((isStart: Boolean, fraction: Float) -> Unit)? = null,
+    chunkMarkerFractions: List<Float> = emptyList(),
+    activeChunkStartFraction: Float? = null,
+    activeChunkEndFraction: Float? = null,
 ) {
     if (amplitudes.isEmpty()) return
 
@@ -57,6 +60,9 @@ fun WaveformView(
     val centerLineColor = MaterialTheme.colorScheme.outlineVariant
     val loopOverlayColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
     val loopMarkerColor = MaterialTheme.colorScheme.tertiary
+    val chunkMarkerColor = MaterialTheme.colorScheme.secondary
+    val chunkAltBgColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)
+    val activeChunkColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
 
     // Auto-scroll: keep cursor in view during playback
     LaunchedEffect(positionFraction, isPlaying, zoom) {
@@ -118,6 +124,38 @@ fun WaveformView(
         val startFraction = scrollOffset
         val endFraction = (scrollOffset + viewportWidth).coerceAtMost(1f)
 
+        // Chunk alternating backgrounds
+        if (chunkMarkerFractions.isNotEmpty()) {
+            val boundaries = listOf(0f) + chunkMarkerFractions.sorted() + listOf(1f)
+            for (i in 0 until boundaries.size - 1) {
+                val chunkStart = boundaries[i]
+                val chunkEnd = boundaries[i + 1]
+                if (chunkEnd <= startFraction || chunkStart >= endFraction) continue
+                val leftX = ((chunkStart.coerceAtLeast(startFraction) - startFraction) / viewportWidth * canvasWidth)
+                val rightX = ((chunkEnd.coerceAtMost(endFraction) - startFraction) / viewportWidth * canvasWidth)
+                if (i % 2 == 1) {
+                    drawRect(
+                        color = chunkAltBgColor,
+                        topLeft = Offset(leftX, 0f),
+                        size = Size(rightX - leftX, canvasHeight),
+                    )
+                }
+            }
+        }
+
+        // Active chunk highlight during practice
+        if (activeChunkStartFraction != null && activeChunkEndFraction != null) {
+            val leftX = ((activeChunkStartFraction.coerceAtLeast(startFraction) - startFraction) / viewportWidth * canvasWidth)
+            val rightX = ((activeChunkEndFraction.coerceAtMost(endFraction) - startFraction) / viewportWidth * canvasWidth)
+            if (rightX > leftX) {
+                drawRect(
+                    color = activeChunkColor,
+                    topLeft = Offset(leftX, 0f),
+                    size = Size(rightX - leftX, canvasHeight),
+                )
+            }
+        }
+
         val startIndex = (startFraction * amplitudes.size).toInt().coerceIn(0, amplitudes.size - 1)
         val endIndex = (endFraction * amplitudes.size).toInt().coerceIn(startIndex + 1, amplitudes.size)
         val visibleCount = endIndex - startIndex
@@ -144,6 +182,19 @@ fun WaveformView(
                 topLeft = Offset(x, centerY - barHeight / 2f),
                 size = Size(barWidth.coerceAtLeast(1f), barHeight.coerceAtLeast(1f)),
             )
+        }
+
+        // Chunk marker lines
+        chunkMarkerFractions.forEachIndexed { index, fraction ->
+            if (fraction in startFraction..endFraction) {
+                val markerX = ((fraction - startFraction) / viewportWidth) * canvasWidth
+                drawLine(
+                    color = chunkMarkerColor,
+                    start = Offset(markerX, 0f),
+                    end = Offset(markerX, canvasHeight),
+                    strokeWidth = 2f,
+                )
+            }
         }
 
         // Loop region overlay

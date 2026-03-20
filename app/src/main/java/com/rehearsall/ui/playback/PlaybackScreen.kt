@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.ui.common.formatDuration
 import com.rehearsall.ui.playback.components.MarkersBottomSheet
+import com.rehearsall.ui.playback.components.PracticeControlsBottomSheet
 import com.rehearsall.ui.playback.components.QueueBottomSheet
 import com.rehearsall.ui.playback.components.WaveformOverviewBar
 import com.rehearsall.ui.playback.components.WaveformView
@@ -125,6 +126,13 @@ fun PlaybackScreen(
                             if (it.endMs > it.startMs) it.endMs.toFloat() / duration else null
                         }
 
+                        val chunkFractions = uiState.chunkMarkers.map {
+                            it.positionMs.toFloat() / duration
+                        }
+                        val practiceStep = (uiState.practiceState as? com.rehearsall.playback.PracticeState.Playing)?.currentStep
+                        val activeChunkStart = practiceStep?.let { it.startMs.toFloat() / duration }
+                        val activeChunkEnd = practiceStep?.let { it.endMs.toFloat() / duration }
+
                         WaveformView(
                             amplitudes = waveform.amplitudes,
                             positionFraction = positionFraction,
@@ -138,6 +146,9 @@ fun PlaybackScreen(
                             onLoopBoundaryDrag = { isStart, fraction ->
                                 viewModel.adjustLoopBoundary(isStart, (fraction * duration).toLong())
                             },
+                            chunkMarkerFractions = chunkFractions,
+                            activeChunkStartFraction = activeChunkStart,
+                            activeChunkEndFraction = activeChunkEnd,
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -258,6 +269,14 @@ fun PlaybackScreen(
             onSaveLoop = viewModel::saveLoop,
             onLoadLoop = viewModel::loadLoop,
             onDeleteLoop = viewModel::deleteLoop,
+            chunkMarkers = uiState.chunkMarkers,
+            onSeekToChunk = viewModel::seekToChunk,
+            onAddChunkMarker = viewModel::addChunkMarker,
+            onDeleteChunkMarker = viewModel::deleteChunkMarker,
+            onStartPractice = {
+                viewModel.dismissMarkersSheet()
+                viewModel.togglePracticeSheet()
+            },
             onDismiss = viewModel::dismissMarkersSheet,
         )
     }
@@ -270,6 +289,23 @@ fun PlaybackScreen(
             onRemove = viewModel::removeFromQueue,
             onClearQueue = viewModel::clearQueue,
             onDismiss = viewModel::dismissQueueSheet,
+        )
+    }
+
+    // Practice controls bottom sheet
+    if (uiState.showPracticeSheet) {
+        PracticeControlsBottomSheet(
+            practiceState = uiState.practiceState,
+            settings = uiState.practiceSettings,
+            onModeChange = viewModel::updatePracticeMode,
+            onRepeatCountChange = viewModel::updateRepeatCount,
+            onGapBetweenRepsChange = viewModel::updateGapBetweenReps,
+            onGapBetweenChunksChange = viewModel::updateGapBetweenChunks,
+            onStart = viewModel::startPractice,
+            onStop = viewModel::stopPractice,
+            onSkipNext = viewModel::practiceSkipNext,
+            onSkipPrevious = viewModel::practiceSkipPrevious,
+            onDismiss = viewModel::dismissPracticeSheet,
         )
     }
 }

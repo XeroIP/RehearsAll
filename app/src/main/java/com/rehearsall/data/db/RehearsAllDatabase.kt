@@ -4,14 +4,18 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.rehearsall.data.db.dao.AudioFileDao
 import com.rehearsall.data.db.dao.BookmarkDao
+import com.rehearsall.data.db.dao.ChunkMarkerDao
 import com.rehearsall.data.db.dao.LoopDao
 import com.rehearsall.data.db.dao.PlaylistDao
 import com.rehearsall.data.db.dao.PlaylistItemDao
+import com.rehearsall.data.db.dao.PracticeSettingsDao
 import com.rehearsall.data.db.entity.AudioFileEntity
 import com.rehearsall.data.db.entity.BookmarkEntity
+import com.rehearsall.data.db.entity.ChunkMarkerEntity
 import com.rehearsall.data.db.entity.LoopEntity
 import com.rehearsall.data.db.entity.PlaylistEntity
 import com.rehearsall.data.db.entity.PlaylistItemEntity
+import com.rehearsall.data.db.entity.PracticeSettingsEntity
 
 @Database(
     entities = [
@@ -20,8 +24,10 @@ import com.rehearsall.data.db.entity.PlaylistItemEntity
         PlaylistItemEntity::class,
         BookmarkEntity::class,
         LoopEntity::class,
+        ChunkMarkerEntity::class,
+        PracticeSettingsEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class RehearsAllDatabase : RoomDatabase() {
@@ -30,4 +36,6 @@ abstract class RehearsAllDatabase : RoomDatabase() {
     abstract fun playlistItemDao(): PlaylistItemDao
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun loopDao(): LoopDao
+    abstract fun chunkMarkerDao(): ChunkMarkerDao
+    abstract fun practiceSettingsDao(): PracticeSettingsDao
 }

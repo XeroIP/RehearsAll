@@ -5,8 +5,10 @@ import androidx.room.Room
 import com.rehearsall.data.db.RehearsAllDatabase
 import com.rehearsall.data.db.dao.AudioFileDao
 import com.rehearsall.data.db.dao.BookmarkDao
+import com.rehearsall.data.db.dao.ChunkMarkerDao
 import com.rehearsall.data.db.dao.LoopDao
 import com.rehearsall.data.db.dao.PlaylistDao
+import com.rehearsall.data.db.dao.PracticeSettingsDao
 import com.rehearsall.data.db.dao.PlaylistItemDao
 import dagger.Module
 import dagger.Provides
@@ -54,5 +56,15 @@ object DatabaseModule {
     @Provides
     fun provideLoopDao(database: RehearsAllDatabase): LoopDao {
         return database.loopDao()
+    }
+
+    @Provides
+    fun provideChunkMarkerDao(database: RehearsAllDatabase): ChunkMarkerDao {
+        return database.chunkMarkerDao()
+    }
+
+    @Provides
+    fun providePracticeSettingsDao(database: RehearsAllDatabase): PracticeSettingsDao {
+        return database.practiceSettingsDao()
     }
 }
