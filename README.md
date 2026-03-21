@@ -8,20 +8,31 @@
 ## Features
 
 - **Audio import** — Import MP3, WAV, OGG, FLAC, and M4A files via the system file picker
-- **Interactive waveform** — Pinch-to-zoom, scroll, and tap-to-seek with real-time playback cursor
+- **Interactive waveform** — Pinch-to-zoom, scroll, and tap-to-seek with real-time playback cursor and position scrub handle
+- **Waveform zoom controls** — Dedicated zoom in/out buttons and minimap overview bar with drag-to-scroll
 - **Variable speed** — 0.25x to 3.0x playback with pitch preservation
-- **Bookmarks** — Drop, rename, delete, and tap to navigate
-- **A-B looping** — Set loop points visually on the waveform, save and load loops, drag boundaries to adjust
+- **Bookmarks** — Drop, rename, reposition, delete, and tap to navigate
+- **A-B looping** — Set loop points visually on the waveform with a dedicated loop editor:
+  - Drag loop boundary handles on the waveform
+  - Fine-tune boundaries with +/- 0.25s buttons or direct time entry
+  - Save, load, overwrite, and delete named loops
+  - Smooth crossfade at loop boundaries (configurable)
 - **Chunked practice** — Place markers, then run three practice modes:
   - **Single chunk loop** — repeat each chunk N times
   - **Cumulative build-up** — progressively add chunks (1, 1+2, 1+2+3, ...)
   - **Sequential play** — play through all chunks in order
+- **Markers bottom sheet** — Unified marker management with waveform preview, play/pause, and zoom controls:
+  - **Loops tab** — Loop editor with boundary controls, saved loops list
+  - **Chunks tab** — Chunk marker management, practice launcher
+  - **Bookmarks tab** — Bookmark list with position editing
+- **Waveform overlay** — Optionally display saved loops or chunk markers on the main playback screen (configurable in Settings)
 - **Playlists** — Create, reorder, and manage playlists with queue controls
 - **Android Auto** — Browse files, playlists, and loops; search; toggle loops from Now Playing
 - **Theme support** — Light, Dark, and Follow System with Material You dynamic colors
-- **Configurable skip** — 2s, 5s, 10s, 15s, or 30s skip increment
+- **Configurable settings** — Skip increment, loop crossfade, waveform overlay mode
 - **Resume playback** — Remembers position and speed per file
 - **Notification & lock screen** — Full transport controls via MediaSession
+- **Time display** — Shows tenths of seconds for precise positioning
 
 ## Architecture
 
@@ -36,14 +47,16 @@ Built with modern Android stack:
 - **Timber** for structured logging
 
 The playback architecture separates concerns:
-- **Service side** (`RehearsAllPlaybackService`) — owns the ExoPlayer, enforces loop regions, serves the Android Auto content tree
+- **Service side** (`RehearsAllPlaybackService`) — owns the ExoPlayer, enforces loop regions with optional crossfade, serves the Android Auto content tree
 - **App side** (`PlaybackManagerImpl`) — communicates via `MediaController` commands only, polls position at ~60fps
 
 ## Documentation
 
-- [User Guide](docs/USER_GUIDE.md) — Full feature walkthrough
-- [Practice Modes](docs/PRACTICE_MODES.md) — Deep dive on the three practice modes
-- [Security](docs/SECURITY.md) — OWASP Mobile Top 10 security overview
+Full documentation is available on the [GitHub Wiki](https://github.com/XeroIP/RehearsAll/wiki).
+
+- [User Guide](https://github.com/XeroIP/RehearsAll/wiki/User-Guide) — Full feature walkthrough
+- [Practice Modes](https://github.com/XeroIP/RehearsAll/wiki/Practice-Modes) — Deep dive on the three practice modes
+- [Security](https://github.com/XeroIP/RehearsAll/wiki/Security) — OWASP Mobile Top 10 security overview
 
 ## Building
 

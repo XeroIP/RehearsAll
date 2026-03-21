@@ -1,36 +1,35 @@
 package com.rehearsall.ui.playback.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 
 /**
  * Interactive waveform view with pinch-to-zoom, horizontal scroll,
- * tap-to-seek, and a playback cursor that auto-scrolls during playback.
+ * tap-to-seek, loop boundary dragging, position scrub handle, and a playback cursor.
  *
- * @param amplitudes Normalized amplitude data (0.0–1.0)
- * @param positionFraction Current playback position as fraction (0.0–1.0)
- * @param isPlaying Whether playback is active (enables auto-scroll)
- * @param onSeek Called with position fraction (0.0–1.0) when user taps or drags
- * @param height Height of the waveform view
+ * @param editable When true, loop boundary handles are shown and draggable.
+ *   When false, loop region is shown read-only (dimmed outside, marker lines only).
+ * @param showPositionHandle When true, a draggable position scrub handle appears at the bottom.
  */
 @Composable
 fun WaveformView(
@@ -40,77 +39,189 @@ fun WaveformView(
     onSeek: (Float) -> Unit,
     modifier: Modifier = Modifier,
     height: Dp = 120.dp,
+    zoom: Float = 1f,
+    scrollOffset: Float = 0f,
+    onZoomChange: (Float) -> Unit = {},
+    onScrollOffsetChange: (Float) -> Unit = {},
     loopStartFraction: Float? = null,
     loopEndFraction: Float? = null,
     onLoopBoundaryDrag: ((isStart: Boolean, fraction: Float) -> Unit)? = null,
+    editable: Boolean = true,
+    showPositionHandle: Boolean = false,
     chunkMarkerFractions: List<Float> = emptyList(),
     activeChunkStartFraction: Float? = null,
     activeChunkEndFraction: Float? = null,
 ) {
     if (amplitudes.isEmpty()) return
 
-    // Zoom: 1.0 = full file visible, higher = zoomed in
-    var zoom by remember { mutableFloatStateOf(1f) }
-    // Scroll offset as fraction of total width (0.0 = start)
-    var scrollOffset by remember { mutableFloatStateOf(0f) }
+    // Use rememberUpdatedState so gesture handlers always read latest values
+    // without restarting the pointer input coroutine on every change.
+    val currentZoom by rememberUpdatedState(zoom)
+    val currentScroll by rememberUpdatedState(scrollOffset)
+    val currentLoopStart by rememberUpdatedState(loopStartFraction)
+    val currentLoopEnd by rememberUpdatedState(loopEndFraction)
+    val currentPosition by rememberUpdatedState(positionFraction)
 
+    // HIGH CONTRAST colors
     val waveformColor = MaterialTheme.colorScheme.primary
-    val waveformBgColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    val waveformBgColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
     val cursorColor = MaterialTheme.colorScheme.error
-    val centerLineColor = MaterialTheme.colorScheme.outlineVariant
-    val loopOverlayColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+    val centerLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+    val loopOverlayColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.25f)
     val loopMarkerColor = MaterialTheme.colorScheme.tertiary
+    val loopHandleFillColor = MaterialTheme.colorScheme.tertiary
+    val loopHandleOutlineColor = MaterialTheme.colorScheme.onTertiary
     val chunkMarkerColor = MaterialTheme.colorScheme.secondary
     val chunkAltBgColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)
     val activeChunkColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+    val dimColor = Color.Black.copy(alpha = 0.45f)
+    val positionHandleColor = MaterialTheme.colorScheme.error
+    val positionHandleGripColor = MaterialTheme.colorScheme.onError
 
     // Auto-scroll: keep cursor in view during playback
-    LaunchedEffect(positionFraction, isPlaying, zoom) {
-        if (isPlaying && zoom > 1f) {
-            val viewportWidth = 1f / zoom
-            val cursorInViewport = positionFraction - scrollOffset
-            if (cursorInViewport > viewportWidth * 0.8f || cursorInViewport < viewportWidth * 0.1f) {
-                scrollOffset = (positionFraction - viewportWidth * 0.3f)
-                    .coerceIn(0f, 1f - viewportWidth)
+    LaunchedEffect(positionFraction, isPlaying) {
+        val z = currentZoom
+        val s = currentScroll
+        if (isPlaying && z > 1f) {
+            val vw = 1f / z
+            val cursorInView = positionFraction - s
+            if (cursorInView > vw * 0.8f || cursorInView < vw * 0.1f) {
+                onScrollOffsetChange(
+                    (positionFraction - vw * 0.3f).coerceIn(0f, 1f - vw)
+                )
             }
         }
     }
 
+    val topOverhangDp = if (editable) 16.dp else 0.dp
+    val bottomOverhangDp = if (showPositionHandle) 16.dp else 0.dp
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            .height(height + topOverhangDp + bottomOverhangDp)
             .pointerInput(amplitudes) {
-                detectTapGestures { offset ->
-                    val fraction = tapToFraction(offset.x, size.width.toFloat(), zoom, scrollOffset)
-                    onSeek(fraction.coerceIn(0f, 1f))
-                }
-            }
-            .pointerInput(amplitudes) {
+                // Pinch-to-zoom in its own block so two-finger gestures don't conflict
                 detectTransformGestures { _, _, gestureZoom, _ ->
-                    val newZoom = (zoom * gestureZoom).coerceIn(1f, 50f)
-                    // Adjust scroll to keep center point stable
-                    val viewportCenter = scrollOffset + (1f / zoom) / 2f
-                    zoom = newZoom
-                    val newViewportWidth = 1f / newZoom
-                    scrollOffset = (viewportCenter - newViewportWidth / 2f)
-                        .coerceIn(0f, (1f - newViewportWidth).coerceAtLeast(0f))
+                    val z = currentZoom
+                    val s = currentScroll
+                    val newZoom = (z * gestureZoom).coerceIn(1f, 50f)
+                    val viewportCenter = s + (1f / z) / 2f
+                    val newVW = 1f / newZoom
+                    val newScroll = (viewportCenter - newVW / 2f)
+                        .coerceIn(0f, (1f - newVW).coerceAtLeast(0f))
+                    onZoomChange(newZoom)
+                    onScrollOffsetChange(newScroll)
                 }
             }
-            .pointerInput(amplitudes) {
-                detectHorizontalDragGestures { _, dragAmount ->
-                    if (zoom > 1f) {
-                        val viewportWidth = 1f / zoom
-                        val delta = -dragAmount / size.width * viewportWidth
-                        scrollOffset = (scrollOffset + delta)
-                            .coerceIn(0f, (1f - viewportWidth).coerceAtLeast(0f))
+            .pointerInput(amplitudes, editable, showPositionHandle) {
+                // Single-finger: tap-to-seek, loop boundary drag, position handle drag, or scroll
+                val handleHitPx = 56f
+                val boundarySlop = 2f   // Very low for smooth handle scrubbing
+                val generalSlop = 10f
+
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val downX = down.position.x
+                    val downY = down.position.y
+                    val canvasW = size.width.toFloat()
+                    val canvasH = size.height.toFloat()
+                    val z = currentZoom
+                    val s = currentScroll
+                    val vw = 1f / z
+
+                    // Check proximity to loop boundary handles (editable only)
+                    var nearBoundary: Boolean? = null
+                    val ls = currentLoopStart
+                    val le = currentLoopEnd
+                    if (editable && ls != null && le != null && onLoopBoundaryDrag != null) {
+                        val startX = ((ls - s) / vw) * canvasW
+                        val endX = ((le - s) / vw) * canvasW
+                        val distStart = abs(downX - startX)
+                        val distEnd = abs(downX - endX)
+                        if (distStart < handleHitPx || distEnd < handleHitPx) {
+                            nearBoundary = distStart <= distEnd
+                        }
+                    }
+
+                    // Check proximity to position scrub handle
+                    var nearPosition = false
+                    if (showPositionHandle) {
+                        val posX = ((currentPosition - s) / vw) * canvasW
+                        if (abs(downX - posX) < handleHitPx) {
+                            nearPosition = true
+                        }
+                    }
+
+                    // Disambiguate: if both nearby, use Y (top = boundary, bottom = position)
+                    if (nearBoundary != null && nearPosition) {
+                        if (downY > canvasH * 0.5f) {
+                            nearBoundary = null
+                        } else {
+                            nearPosition = false
+                        }
+                    }
+
+                    val slop = if (nearBoundary != null || nearPosition) boundarySlop else generalSlop
+                    var dragged = false
+                    var action: String? = null
+
+                    drag(down.id) { change ->
+                        if (!dragged && abs(change.position.x - downX) > slop) {
+                            dragged = true
+                            action = when {
+                                nearBoundary != null -> "boundary"
+                                nearPosition -> "position"
+                                else -> "scroll"
+                            }
+                        }
+                        if (dragged) {
+                            change.consume()
+                            val cz = currentZoom
+                            val cs = currentScroll
+                            when (action) {
+                                "boundary" -> {
+                                    val f = tapToFraction(change.position.x, canvasW, cz, cs)
+                                        .coerceIn(0f, 1f)
+                                    onLoopBoundaryDrag?.invoke(nearBoundary!!, f)
+                                }
+                                "position" -> {
+                                    val f = tapToFraction(change.position.x, canvasW, cz, cs)
+                                        .coerceIn(0f, 1f)
+                                    onSeek(f)
+                                }
+                                "scroll" -> {
+                                    if (cz > 1f) {
+                                        val dx = change.positionChange().x
+                                        val cvw = 1f / cz
+                                        val delta = -dx / canvasW * cvw
+                                        onScrollOffsetChange(
+                                            (cs + delta).coerceIn(
+                                                0f,
+                                                (1f - cvw).coerceAtLeast(0f),
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (!dragged) {
+                        val cz = currentZoom
+                        val cs = currentScroll
+                        onSeek(tapToFraction(downX, canvasW, cz, cs).coerceIn(0f, 1f))
                     }
                 }
             },
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
-        val centerY = canvasHeight / 2f
+        val topOverhangPx = if (editable) 32f else 0f
+        val bottomOverhangPx = if (showPositionHandle) 32f else 0f
+        val waveTop = topOverhangPx
+        val waveHeight = canvasHeight - topOverhangPx - bottomOverhangPx
+        val centerY = waveTop + waveHeight / 2f
 
         // Center line
         drawLine(
@@ -121,23 +232,23 @@ fun WaveformView(
         )
 
         val viewportWidth = 1f / zoom
-        val startFraction = scrollOffset
-        val endFraction = (scrollOffset + viewportWidth).coerceAtMost(1f)
+        val startFrac = scrollOffset
+        val endFrac = (scrollOffset + viewportWidth).coerceAtMost(1f)
 
         // Chunk alternating backgrounds
         if (chunkMarkerFractions.isNotEmpty()) {
             val boundaries = listOf(0f) + chunkMarkerFractions.sorted() + listOf(1f)
             for (i in 0 until boundaries.size - 1) {
-                val chunkStart = boundaries[i]
-                val chunkEnd = boundaries[i + 1]
-                if (chunkEnd <= startFraction || chunkStart >= endFraction) continue
-                val leftX = ((chunkStart.coerceAtLeast(startFraction) - startFraction) / viewportWidth * canvasWidth)
-                val rightX = ((chunkEnd.coerceAtMost(endFraction) - startFraction) / viewportWidth * canvasWidth)
+                val cs = boundaries[i]
+                val ce = boundaries[i + 1]
+                if (ce <= startFrac || cs >= endFrac) continue
+                val lx = ((cs.coerceAtLeast(startFrac) - startFrac) / viewportWidth * canvasWidth)
+                val rx = ((ce.coerceAtMost(endFrac) - startFrac) / viewportWidth * canvasWidth)
                 if (i % 2 == 1) {
                     drawRect(
                         color = chunkAltBgColor,
-                        topLeft = Offset(leftX, 0f),
-                        size = Size(rightX - leftX, canvasHeight),
+                        topLeft = Offset(lx, waveTop),
+                        size = Size(rx - lx, waveHeight),
                     )
                 }
             }
@@ -145,122 +256,199 @@ fun WaveformView(
 
         // Active chunk highlight during practice
         if (activeChunkStartFraction != null && activeChunkEndFraction != null) {
-            val leftX = ((activeChunkStartFraction.coerceAtLeast(startFraction) - startFraction) / viewportWidth * canvasWidth)
-            val rightX = ((activeChunkEndFraction.coerceAtMost(endFraction) - startFraction) / viewportWidth * canvasWidth)
-            if (rightX > leftX) {
+            val lx = ((activeChunkStartFraction.coerceAtLeast(startFrac) - startFrac) / viewportWidth * canvasWidth)
+            val rx = ((activeChunkEndFraction.coerceAtMost(endFrac) - startFrac) / viewportWidth * canvasWidth)
+            if (rx > lx) {
                 drawRect(
                     color = activeChunkColor,
-                    topLeft = Offset(leftX, 0f),
-                    size = Size(rightX - leftX, canvasHeight),
+                    topLeft = Offset(lx, waveTop),
+                    size = Size(rx - lx, waveHeight),
                 )
             }
         }
 
-        val startIndex = (startFraction * amplitudes.size).toInt().coerceIn(0, amplitudes.size - 1)
-        val endIndex = (endFraction * amplitudes.size).toInt().coerceIn(startIndex + 1, amplitudes.size)
+        // Draw amplitude bars
+        val startIndex = (startFrac * amplitudes.size).toInt().coerceIn(0, amplitudes.size - 1)
+        val endIndex = (endFrac * amplitudes.size).toInt().coerceIn(startIndex + 1, amplitudes.size)
         val visibleCount = endIndex - startIndex
-
         if (visibleCount <= 0) return@Canvas
 
-        // Draw bars
         val barWidth = canvasWidth / visibleCount
         for (i in 0 until visibleCount) {
             val amp = amplitudes[startIndex + i]
-            val barHeight = amp * canvasHeight * 0.9f
+            val barH = amp * waveHeight * 0.9f
             val x = i * barWidth
 
-            // Background bar (full height indicator)
+            // Background bar (visible track)
             drawRect(
                 color = waveformBgColor,
-                topLeft = Offset(x, centerY - canvasHeight * 0.45f),
-                size = Size(barWidth.coerceAtLeast(1f), canvasHeight * 0.9f),
+                topLeft = Offset(x, centerY - waveHeight * 0.45f),
+                size = Size(barWidth.coerceAtLeast(1f), waveHeight * 0.9f),
             )
 
             // Amplitude bar (mirrored around center)
             drawRect(
                 color = waveformColor,
-                topLeft = Offset(x, centerY - barHeight / 2f),
-                size = Size(barWidth.coerceAtLeast(1f), barHeight.coerceAtLeast(1f)),
+                topLeft = Offset(x, centerY - barH / 2f),
+                size = Size(barWidth.coerceAtLeast(1f), barH.coerceAtLeast(1f)),
             )
         }
 
         // Chunk marker lines
-        chunkMarkerFractions.forEachIndexed { index, fraction ->
-            if (fraction in startFraction..endFraction) {
-                val markerX = ((fraction - startFraction) / viewportWidth) * canvasWidth
+        chunkMarkerFractions.forEach { fraction ->
+            if (fraction in startFrac..endFrac) {
+                val mx = ((fraction - startFrac) / viewportWidth) * canvasWidth
                 drawLine(
                     color = chunkMarkerColor,
-                    start = Offset(markerX, 0f),
-                    end = Offset(markerX, canvasHeight),
+                    start = Offset(mx, waveTop),
+                    end = Offset(mx, waveTop + waveHeight),
                     strokeWidth = 2f,
                 )
             }
         }
 
-        // Loop region overlay
+        // Loop region
         if (loopStartFraction != null && loopEndFraction != null && loopEndFraction > loopStartFraction) {
-            val loopLeftX = ((loopStartFraction - startFraction) / viewportWidth * canvasWidth)
+            val loopLX = ((loopStartFraction - startFrac) / viewportWidth * canvasWidth)
                 .coerceIn(0f, canvasWidth)
-            val loopRightX = ((loopEndFraction - startFraction) / viewportWidth * canvasWidth)
+            val loopRX = ((loopEndFraction - startFrac) / viewportWidth * canvasWidth)
                 .coerceIn(0f, canvasWidth)
 
-            if (loopRightX > loopLeftX) {
+            if (editable) {
                 // Semi-transparent overlay between A and B
-                drawRect(
-                    color = loopOverlayColor,
-                    topLeft = Offset(loopLeftX, 0f),
-                    size = Size(loopRightX - loopLeftX, canvasHeight),
-                )
-
-                // A marker (left edge)
-                if (loopStartFraction in startFraction..endFraction) {
-                    drawLine(
-                        color = loopMarkerColor,
-                        start = Offset(loopLeftX, 0f),
-                        end = Offset(loopLeftX, canvasHeight),
-                        strokeWidth = 3f,
-                    )
-                    // Small triangle at top for A handle
-                    drawPath(
-                        path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(loopLeftX, 0f)
-                            lineTo(loopLeftX + 10f, 0f)
-                            lineTo(loopLeftX, 14f)
-                            close()
-                        },
-                        color = loopMarkerColor,
+                if (loopRX > loopLX) {
+                    drawRect(
+                        color = loopOverlayColor,
+                        topLeft = Offset(loopLX, waveTop),
+                        size = Size(loopRX - loopLX, waveHeight),
                     )
                 }
 
-                // B marker (right edge)
-                if (loopEndFraction in startFraction..endFraction) {
+                // Draggable handles: 42w x 64h, centered vertically on waveTop
+                val hW = 42f
+                val hH = 64f
+                val hCorner = CornerRadius(6f, 6f)
+                val hTop = waveTop - hH / 2f
+
+                // A handle (start)
+                if (loopStartFraction in startFrac..endFrac) {
                     drawLine(
                         color = loopMarkerColor,
-                        start = Offset(loopRightX, 0f),
-                        end = Offset(loopRightX, canvasHeight),
+                        start = Offset(loopLX, waveTop),
+                        end = Offset(loopLX, waveTop + waveHeight),
+                        strokeWidth = 4f,
+                    )
+                    drawRoundRect(
+                        color = loopHandleFillColor,
+                        topLeft = Offset(loopLX - 4f, hTop),
+                        size = Size(hW, hH),
+                        cornerRadius = hCorner,
+                    )
+                    val gL = loopLX + 8f
+                    val gR = loopLX + hW - 14f
+                    for (gy in listOf(hTop + hH * 0.3f, hTop + hH * 0.5f, hTop + hH * 0.7f)) {
+                        drawLine(
+                            color = loopHandleOutlineColor,
+                            start = Offset(gL, gy),
+                            end = Offset(gR, gy),
+                            strokeWidth = 2f,
+                        )
+                    }
+                }
+
+                // B handle (end)
+                if (loopEndFraction in startFrac..endFrac) {
+                    drawLine(
+                        color = loopMarkerColor,
+                        start = Offset(loopRX, waveTop),
+                        end = Offset(loopRX, waveTop + waveHeight),
+                        strokeWidth = 4f,
+                    )
+                    drawRoundRect(
+                        color = loopHandleFillColor,
+                        topLeft = Offset(loopRX - hW + 4f, hTop),
+                        size = Size(hW, hH),
+                        cornerRadius = hCorner,
+                    )
+                    val gL = loopRX - hW + 14f
+                    val gR = loopRX - 8f
+                    for (gy in listOf(hTop + hH * 0.3f, hTop + hH * 0.5f, hTop + hH * 0.7f)) {
+                        drawLine(
+                            color = loopHandleOutlineColor,
+                            start = Offset(gL, gy),
+                            end = Offset(gR, gy),
+                            strokeWidth = 2f,
+                        )
+                    }
+                }
+            } else {
+                // Read-only: darken outside loop, show marker lines only
+                if (loopLX > 0f) {
+                    drawRect(
+                        color = dimColor,
+                        topLeft = Offset(0f, waveTop),
+                        size = Size(loopLX, waveHeight),
+                    )
+                }
+                if (loopRX < canvasWidth) {
+                    drawRect(
+                        color = dimColor,
+                        topLeft = Offset(loopRX, waveTop),
+                        size = Size(canvasWidth - loopRX, waveHeight),
+                    )
+                }
+                if (loopStartFraction in startFrac..endFrac) {
+                    drawLine(
+                        color = loopMarkerColor,
+                        start = Offset(loopLX, waveTop),
+                        end = Offset(loopLX, waveTop + waveHeight),
                         strokeWidth = 3f,
                     )
-                    // Small triangle at top for B handle
-                    drawPath(
-                        path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(loopRightX, 0f)
-                            lineTo(loopRightX - 10f, 0f)
-                            lineTo(loopRightX, 14f)
-                            close()
-                        },
+                }
+                if (loopEndFraction in startFrac..endFrac) {
+                    drawLine(
                         color = loopMarkerColor,
+                        start = Offset(loopRX, waveTop),
+                        end = Offset(loopRX, waveTop + waveHeight),
+                        strokeWidth = 3f,
                     )
                 }
             }
         }
 
-        // Playback cursor
-        if (positionFraction in startFraction..endFraction) {
-            val cursorX = ((positionFraction - startFraction) / viewportWidth) * canvasWidth
+        // Position scrub handle at bottom
+        if (showPositionHandle && positionFraction in startFrac..endFrac) {
+            val posX = ((positionFraction - startFrac) / viewportWidth) * canvasWidth
+            val phW = 42f
+            val phH = 48f
+            val phCorner = CornerRadius(6f, 6f)
+            val phTop = waveTop + waveHeight - phH / 2f
+
+            drawRoundRect(
+                color = positionHandleColor,
+                topLeft = Offset(posX - phW / 2f, phTop),
+                size = Size(phW, phH),
+                cornerRadius = phCorner,
+            )
+            val gL = posX - phW / 2f + 10f
+            val gR = posX + phW / 2f - 10f
+            for (gy in listOf(phTop + phH * 0.3f, phTop + phH * 0.5f, phTop + phH * 0.7f)) {
+                drawLine(
+                    color = positionHandleGripColor,
+                    start = Offset(gL, gy),
+                    end = Offset(gR, gy),
+                    strokeWidth = 2f,
+                )
+            }
+        }
+
+        // Playback cursor line
+        if (positionFraction in startFrac..endFrac) {
+            val cx = ((positionFraction - startFrac) / viewportWidth) * canvasWidth
             drawLine(
                 color = cursorColor,
-                start = Offset(cursorX, 0f),
-                end = Offset(cursorX, canvasHeight),
+                start = Offset(cx, waveTop),
+                end = Offset(cx, waveTop + waveHeight),
                 strokeWidth = 2f,
             )
         }
@@ -277,11 +465,3 @@ private fun tapToFraction(
     val tapFractionInViewport = tapX / canvasWidth
     return scrollOffset + tapFractionInViewport * viewportWidth
 }
-
-/**
- * Provides the current viewport info for the overview bar.
- */
-data class WaveformViewport(
-    val startFraction: Float,
-    val endFraction: Float,
-)

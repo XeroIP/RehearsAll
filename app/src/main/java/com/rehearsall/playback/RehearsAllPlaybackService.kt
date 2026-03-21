@@ -25,11 +25,16 @@ import com.rehearsall.data.db.dao.PlaylistDao
 import com.rehearsall.data.db.dao.PlaylistItemDao
 import com.rehearsall.di.ServiceEntryPoint
 import dagger.hilt.android.EntryPointAccessors
+import com.rehearsall.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.guava.future
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -57,8 +62,10 @@ class RehearsAllPlaybackService : MediaLibraryService() {
     private var session: MediaLibrarySession? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    // A-B loop state — enforced in the player listener
+    // A-B loop state — enforced by position polling
     private var loopRegion: LoopRegion? = null
+    private var loopPollingJob: Job? = null
+    private lateinit var userPreferencesRepository: UserPreferencesRepository
 
     // Content tree for Android Auto browsing
     private lateinit var contentTreeBuilder: ContentTreeBuilder
@@ -81,6 +88,7 @@ class RehearsAllPlaybackService : MediaLibraryService() {
             loopDao = entryPoint.loopDao(),
         )
         loopActionHandler = LoopActionHandler(entryPoint.loopDao())
+        userPreferencesRepository = entryPoint.userPreferencesRepository()
 
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
@@ -93,20 +101,20 @@ class RehearsAllPlaybackService : MediaLibraryService() {
             .build()
 
         exoPlayer.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying && loopRegion != null) {
+                    startLoopPolling(exoPlayer)
+                } else {
+                    stopLoopPolling()
+                }
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED && loopRegion != null) {
                     val region = loopRegion ?: return
                     exoPlayer.seekTo(region.startMs)
                     exoPlayer.play()
                 }
-            }
-
-            override fun onPositionDiscontinuity(
-                oldPosition: Player.PositionInfo,
-                newPosition: Player.PositionInfo,
-                reason: Int,
-            ) {
-                enforceLoopBoundary(exoPlayer)
             }
         })
 
@@ -147,12 +155,56 @@ class RehearsAllPlaybackService : MediaLibraryService() {
         super.onDestroy()
     }
 
-    private fun enforceLoopBoundary(player: ExoPlayer) {
-        val region = loopRegion ?: return
-        val pos = player.currentPosition
-        if (pos >= region.endMs) {
-            player.seekTo(region.startMs)
+    private fun startLoopPolling(exoPlayer: ExoPlayer) {
+        stopLoopPolling()
+        loopPollingJob = serviceScope.launch {
+            val crossfadeEnabled = userPreferencesRepository.loopCrossfade.first()
+            val fadeMs = 50L
+            var fadingIn = false
+            var fadeInStart = 0L
+
+            while (true) {
+                val region = loopRegion ?: break
+                val pos = exoPlayer.currentPosition
+                val loopLen = region.endMs - region.startMs
+
+                // Disable crossfade for very short loops (< 150ms)
+                val useCrossfade = crossfadeEnabled && loopLen >= 150
+
+                if (pos >= region.endMs || pos < region.startMs - 500) {
+                    if (useCrossfade) {
+                        exoPlayer.volume = 0f
+                        exoPlayer.seekTo(region.startMs)
+                        fadingIn = true
+                        fadeInStart = System.currentTimeMillis()
+                    } else {
+                        exoPlayer.seekTo(region.startMs)
+                    }
+                } else if (useCrossfade) {
+                    val msUntilEnd = region.endMs - pos
+                    if (fadingIn) {
+                        // Fade volume back in after seek
+                        val elapsed = System.currentTimeMillis() - fadeInStart
+                        val progress = (elapsed.toFloat() / fadeMs).coerceIn(0f, 1f)
+                        exoPlayer.volume = progress
+                        if (progress >= 1f) fadingIn = false
+                    } else if (msUntilEnd <= fadeMs) {
+                        // Fade out approaching loop end
+                        val progress = (msUntilEnd.toFloat() / fadeMs).coerceIn(0f, 1f)
+                        exoPlayer.volume = progress
+                    } else {
+                        exoPlayer.volume = 1f
+                    }
+                }
+
+                delay(16) // ~60fps polling for smooth crossfade
+            }
         }
+    }
+
+    private fun stopLoopPolling() {
+        loopPollingJob?.cancel()
+        loopPollingJob = null
     }
 
     /**
@@ -309,6 +361,7 @@ class RehearsAllPlaybackService : MediaLibraryService() {
                     val end = args.getLong(ARG_LOOP_END, -1L)
                     if (start >= 0 && end > start && (end - start) >= 100) {
                         loopRegion = LoopRegion(start, end)
+                        if (p.isPlaying) startLoopPolling(p)
                         Timber.d("Loop region set: %d – %d ms", start, end)
                     }
                     Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -316,6 +369,7 @@ class RehearsAllPlaybackService : MediaLibraryService() {
 
                 CMD_CLEAR_LOOP_REGION -> {
                     loopRegion = null
+                    stopLoopPolling()
                     Timber.d("Loop region cleared")
                     Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }

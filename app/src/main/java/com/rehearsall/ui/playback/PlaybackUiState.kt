@@ -4,6 +4,7 @@ import com.rehearsall.data.repository.WaveformState
 import com.rehearsall.domain.model.Bookmark
 import com.rehearsall.domain.model.ChunkMarker
 import com.rehearsall.domain.model.Loop
+import com.rehearsall.domain.model.OverlayMode
 import com.rehearsall.domain.model.PracticeSettings
 import com.rehearsall.domain.model.QueueItem
 import com.rehearsall.playback.LoopRegion
@@ -33,4 +34,5 @@ data class PlaybackUiState(
     val practiceSettings: PracticeSettings = PracticeSettings(),
     val waveformState: WaveformState = WaveformState.Loading,
     val skipIncrementMs: Long = 5000L,
+    val overlayMode: OverlayMode = OverlayMode.NONE,
 )

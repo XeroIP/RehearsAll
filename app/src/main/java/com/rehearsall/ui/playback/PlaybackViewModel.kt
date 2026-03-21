@@ -64,6 +64,7 @@ class PlaybackViewModel @Inject constructor(
         observePracticeState()
         loadPracticeSettings()
         observeSkipIncrement()
+        observeOverlayMode()
     }
 
     private fun loadFile() {
@@ -136,6 +137,14 @@ class PlaybackViewModel @Inject constructor(
         viewModelScope.launch {
             skipIncrementMs.collect { ms ->
                 _uiState.update { it.copy(skipIncrementMs = ms) }
+            }
+        }
+    }
+
+    private fun observeOverlayMode() {
+        viewModelScope.launch {
+            userPreferencesRepository.waveformOverlay.collect { mode ->
+                _uiState.update { it.copy(overlayMode = mode) }
             }
         }
     }
@@ -290,6 +299,12 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
+    fun updateBookmarkPosition(id: Long, positionMs: Long) {
+        viewModelScope.launch {
+            bookmarkRepository.updateBookmarkPosition(id, positionMs)
+        }
+    }
+
     fun deleteBookmark(id: Long) {
         viewModelScope.launch {
             bookmarkRepository.deleteBookmark(id)
@@ -338,6 +353,12 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
+    fun createLoop(startMs: Long, endMs: Long) {
+        if (endMs - startMs >= 100) {
+            playbackManager.setLoopRegion(LoopRegion(startMs, endMs))
+        }
+    }
+
     fun clearLoop() {
         playbackManager.clearLoopRegion()
     }
@@ -365,10 +386,23 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
+    fun updateLoopBounds(loopId: Long) {
+        val region = _uiState.value.activeLoop ?: return
+        viewModelScope.launch {
+            loopRepository.updateBounds(loopId, region.startMs, region.endMs)
+        }
+    }
+
     fun adjustLoopBoundary(isStart: Boolean, newMs: Long) {
         val current = _uiState.value.activeLoop ?: return
         val updated = if (isStart) {
-            LoopRegion(newMs.coerceAtLeast(0), current.endMs)
+            var start = newMs.coerceAtLeast(0)
+            // Don't let begin go past current playback position
+            val pos = _uiState.value.playbackState.positionMs
+            if (pos > current.startMs) {
+                start = start.coerceAtMost(pos)
+            }
+            LoopRegion(start, current.endMs)
         } else {
             LoopRegion(current.startMs, newMs.coerceAtMost(_uiState.value.playbackState.durationMs))
         }
@@ -411,6 +445,12 @@ class PlaybackViewModel @Inject constructor(
                 positionMs = positionMs,
                 label = "Marker $count",
             )
+        }
+    }
+
+    fun updateChunkMarkerPosition(id: Long, positionMs: Long) {
+        viewModelScope.launch {
+            chunkMarkerRepository.updatePosition(id, positionMs)
         }
     }
 

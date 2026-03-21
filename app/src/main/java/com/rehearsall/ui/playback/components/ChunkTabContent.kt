@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -25,6 +24,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,10 +40,14 @@ fun ChunkTabContent(
     markers: List<ChunkMarker>,
     onSeekTo: (Long) -> Unit,
     onAddMarker: () -> Unit,
+    onUpdatePosition: (Long, Long) -> Unit,
     onDeleteMarker: (Long) -> Unit,
     onStartPractice: () -> Unit,
+    durationMs: Long = 0L,
     modifier: Modifier = Modifier,
 ) {
+    var timeEditTarget by remember { mutableStateOf<ChunkMarker?>(null) }
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             if (markers.isEmpty()) {
@@ -69,6 +76,7 @@ fun ChunkTabContent(
                             index = index + 1,
                             marker = marker,
                             onTap = { onSeekTo(marker.positionMs) },
+                            onEditTime = { timeEditTarget = marker },
                             onDelete = { onDeleteMarker(marker.id) },
                         )
                     }
@@ -99,6 +107,19 @@ fun ChunkTabContent(
             Icon(Icons.Default.Add, contentDescription = "Add chunk marker")
         }
     }
+
+    timeEditTarget?.let { marker ->
+        TimeEditDialog(
+            title = "Edit Marker Time",
+            currentMs = marker.positionMs,
+            durationMs = durationMs,
+            onConfirm = { newMs ->
+                onUpdatePosition(marker.id, newMs)
+                timeEditTarget = null
+            },
+            onDismiss = { timeEditTarget = null },
+        )
+    }
 }
 
 @Composable
@@ -106,6 +127,7 @@ private fun ChunkMarkerRow(
     index: Int,
     marker: ChunkMarker,
     onTap: () -> Unit,
+    onEditTime: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Row(
@@ -132,6 +154,13 @@ private fun ChunkMarkerRow(
                 text = formatDuration(marker.positionMs),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onEditTime) {
+            Icon(
+                Icons.Default.Schedule,
+                contentDescription = "Edit time",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         IconButton(onClick = onDelete) {

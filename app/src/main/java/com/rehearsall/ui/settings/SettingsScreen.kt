@@ -1,5 +1,7 @@
 package com.rehearsall.ui.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,9 +36,12 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rehearsall.domain.model.OverlayMode
 import com.rehearsall.domain.model.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,6 +97,11 @@ fun SettingsScreen(
                 description = "Smooth volume fade when looping",
                 checked = state.loopCrossfade,
                 onCheckedChange = viewModel::setLoopCrossfade,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            WaveformOverlaySelector(
+                selected = state.waveformOverlay,
+                onSelect = viewModel::setWaveformOverlay,
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -222,7 +232,56 @@ private fun SwitchRow(
 }
 
 @Composable
+private fun WaveformOverlaySelector(
+    selected: OverlayMode,
+    onSelect: (OverlayMode) -> Unit,
+) {
+    val options = listOf(
+        OverlayMode.NONE to "None",
+        OverlayMode.LOOPS to "Loops",
+        OverlayMode.CHUNKS to "Chunks",
+    )
+    Text(
+        text = "Waveform Overlay",
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+    )
+    Text(
+        text = "Show saved loops or chunks on the playback screen",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
+    Column(modifier = Modifier.selectableGroup()) {
+        options.forEach { (mode, label) ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(
+                        selected = selected == mode,
+                        onClick = { onSelect(mode) },
+                        role = Role.RadioButton,
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                RadioButton(
+                    selected = selected == mode,
+                    onClick = null,
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 16.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun AboutSection() {
+    val context = LocalContext.current
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
             text = "RehearsAll",
@@ -235,9 +294,24 @@ private fun AboutSection() {
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Version 0.1.0",
+            text = "Version 0.2.0",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Documentation & Wiki",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                textDecoration = TextDecoration.Underline,
+            ),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable {
+                val intent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://github.com/XeroIP/RehearsAll/wiki"),
+                )
+                context.startActivity(intent)
+            },
         )
     }
     Spacer(modifier = Modifier.height(24.dp))

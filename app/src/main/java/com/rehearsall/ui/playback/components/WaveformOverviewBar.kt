@@ -1,19 +1,26 @@
 package com.rehearsall.ui.playback.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 
 /**
  * Minimap showing the full waveform with a highlighted rectangle
  * indicating the currently visible viewport in the main WaveformView.
+ *
+ * Supports tap and drag to reposition the viewport.
  */
 @Composable
 fun WaveformOverviewBar(
@@ -22,18 +29,50 @@ fun WaveformOverviewBar(
     viewportStart: Float,
     viewportEnd: Float,
     modifier: Modifier = Modifier,
+    onViewportDrag: ((newScrollOffset: Float) -> Unit)? = null,
 ) {
     if (amplitudes.isEmpty()) return
 
-    val barColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-    val viewportColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-    val viewportBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+    val barColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    val viewportColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+    val viewportBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)
     val cursorColor = MaterialTheme.colorScheme.error
+
+    val currentVpStart by rememberUpdatedState(viewportStart)
+    val currentVpEnd by rememberUpdatedState(viewportEnd)
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(24.dp),
+            .height(24.dp)
+            .then(
+                if (onViewportDrag != null) {
+                    Modifier.pointerInput(Unit) {
+                        val vpWidth = { currentVpEnd - currentVpStart }
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val canvasW = size.width.toFloat()
+                            // Center viewport on tap position
+                            val fraction = (down.position.x / canvasW).coerceIn(0f, 1f)
+                            val halfVp = vpWidth() / 2f
+                            onViewportDrag(
+                                (fraction - halfVp).coerceIn(0f, (1f - vpWidth()).coerceAtLeast(0f))
+                            )
+
+                            drag(down.id) { change ->
+                                change.consume()
+                                val f = (change.position.x / canvasW).coerceIn(0f, 1f)
+                                val hw = vpWidth() / 2f
+                                onViewportDrag(
+                                    (f - hw).coerceIn(0f, (1f - vpWidth()).coerceAtLeast(0f))
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Modifier
+                }
+            ),
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height

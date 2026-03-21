@@ -7,8 +7,9 @@ RehearsAll is an audio practice tool designed for musicians learning pieces and 
 - [Getting Started](#getting-started)
 - [Playing Audio](#playing-audio)
 - [Waveform](#waveform)
-- [Bookmarks](#bookmarks)
+- [Markers & Editing](#markers--editing)
 - [A-B Looping](#a-b-looping)
+- [Bookmarks](#bookmarks)
 - [Chunked Practice](#chunked-practice)
 - [Playlists](#playlists)
 - [Queue & Repeat](#queue--repeat)
@@ -66,30 +67,94 @@ Tap any file in the library to open the playback screen.
 
 Speed is saved per file and restored when you reopen it.
 
+### Time Display
+
+All timestamps throughout the app show tenths of seconds (e.g., "1:23.4") for precise positioning when editing loop boundaries or placing markers.
+
 ---
 
 ## Waveform
 
-The interactive waveform replaces a traditional seek bar and gives you visual context for the audio.
+The interactive waveform gives you visual context for the audio.
 
-### Gestures
+### Main Playback Waveform
 
-| Gesture | Action |
-|---------|--------|
-| Tap | Seek to that position |
-| Horizontal scroll | Pan through the waveform |
-| Pinch | Zoom in/out (min = full file, max = ~2 seconds visible) |
+The main playback screen shows a large waveform with:
+- **Tap to seek** — tap anywhere to jump to that position
+- **Position handle** — drag the handle at the bottom to scrub through the audio
+- **Pinch to zoom** — zoom in/out to see more or less detail
+- **Zoom buttons** — dedicated +/- buttons below the waveform
+- **Horizontal scroll** — pan through the waveform when zoomed in
+- **Overlay markers** — optionally shows saved loops or chunk markers (configured in Settings)
 
-### Overview Bar
+The main waveform is **read-only** — loop boundary handles are not draggable here. Use the Markers sheet for editing.
 
-When zoomed in, a thin overview bar appears below the waveform showing:
-- The full file's amplitude as a minimap
-- A highlighted rectangle showing your current viewport
-- The playback cursor position
+### Waveform Overlay
 
-### Auto-Scroll
+When configured in Settings > Playback > Waveform Overlay, the main playback screen shows a list of your saved loops or chunk markers overlaid on the track info area:
+- **Loops overlay** — shows saved loop names and time ranges; tap to load a loop
+- **Chunks overlay** — shows chunk marker positions; tap to seek to a marker
+- **None** (default) — shows only track info (title and artist)
 
-During playback, the waveform automatically scrolls to keep the playback cursor visible.
+---
+
+## Markers & Editing
+
+Tap **Markers** below the transport controls to open the Markers bottom sheet. This is the central hub for managing all position-based markers.
+
+### Markers Sheet Features
+
+The sheet includes:
+- **Interactive waveform** with play/pause button, time display, and zoom controls
+- **Editable loop handles** — drag loop boundaries directly on the waveform
+- **Overview bar** — minimap with drag-to-scroll when zoomed in
+- **Three tabs:** Loops (default), Chunks, Bookmarks
+
+---
+
+## A-B Looping
+
+A-B looping lets you repeat a section of audio continuously — perfect for practicing difficult passages.
+
+### Creating a Loop
+
+1. Tap **Markers** → the **Loops** tab is shown by default
+2. Tap the **+** button to create a new loop (defaults to full track)
+3. The loop editor card appears with Begin and End controls
+
+### Loop Editor
+
+The loop editor is a distinct card at the top of the Loops tab with:
+- **Loop name** — shows the name if editing an existing loop, or "New Loop" for a new one
+- **Close button (X)** — dismiss the editor and clear the active loop
+- **Begin / End times** — tap the time to enter an exact value, or use the **+/- 0.25s** buttons for fine adjustment
+- **Duration display** — shows the loop length
+- **Save button** — saves the loop with current boundaries
+
+### Adjusting Loop Boundaries
+
+- **On the waveform** (Markers sheet only): Drag the A or B handle to fine-tune
+- **+/- buttons:** Adjust each boundary by 0.25 seconds per tap
+- **Direct time entry:** Tap the Begin or End time to type an exact value
+- The loop must be at least 100ms long
+- The Begin boundary cannot be dragged past the current playback position
+
+### Saving Loops
+
+- **New loop:** Tap Save → enter a name → the loop is saved and the editor closes
+- **Existing loop:** Tap Save → confirm overwrite → the loop is updated with new boundaries
+
+### Loading Loops
+
+Tap any saved loop in the list to load it into the editor. The playback position jumps to the loop start.
+
+### Loop Crossfade
+
+When enabled in Settings, a smooth 50ms volume fade is applied at loop boundaries to eliminate clicks. Automatically disabled for very short loops (< 150ms).
+
+### Clearing a Loop
+
+Tap the **X** button on the loop editor to close it and stop looping.
 
 ---
 
@@ -100,53 +165,15 @@ Bookmarks are named positions in a file. Use them to mark sections, cue points, 
 ### Adding Bookmarks
 
 1. Tap **Markers** below the transport controls
-2. In the **Bookmarks** tab, tap the **+** button
-3. A bookmark is created at the current playback position
+2. Switch to the **Bookmarks** tab (rightmost tab)
+3. Tap the **+** button — a bookmark is created at the current playback position
 
 ### Managing Bookmarks
 
 - **Navigate:** Tap any bookmark to seek to that position
 - **Rename:** Tap the bookmark name to edit it
+- **Reposition:** Adjust the bookmark's position
 - **Delete:** Tap the delete icon next to a bookmark
-
-Bookmarks appear as vertical lines on the waveform.
-
----
-
-## A-B Looping
-
-A-B looping lets you repeat a section of audio continuously — perfect for practicing difficult passages.
-
-### Setting a Loop
-
-1. Tap **Markers** → switch to the **Loops** tab
-2. Seek to the start of the section, then tap **Set A**
-3. Seek to the end, then tap **Set B**
-4. Playback now loops between A and B
-
-### Visual Feedback
-
-- The loop region appears as a semi-transparent overlay on the waveform
-- **A** and **B** markers show as draggable handles at the edges
-
-### Adjusting Loop Boundaries
-
-- **Drag** the A or B handle on the waveform to fine-tune boundaries
-- The loop must be at least 100ms long
-
-### Saving Loops
-
-1. With an active loop, tap **Save Loop**
-2. Give it a name (e.g., "Chorus", "Bridge measure 4-8")
-3. Saved loops appear in the list below
-
-### Loading Loops
-
-Tap any saved loop to activate it. The playback position jumps to the loop start.
-
-### Clearing a Loop
-
-Tap **Clear** to stop looping and return to normal playback.
 
 ---
 
@@ -167,7 +194,7 @@ Chunked practice breaks a file into sections and drills them systematically. Thi
 
 ### Practice Modes
 
-See [Practice Modes](PRACTICE_MODES.md) for a detailed explanation of each mode.
+See [Practice Modes](Practice-Modes) for a detailed explanation of each mode.
 
 **Quick summary:**
 
@@ -262,19 +289,11 @@ On the Now Playing screen, use the custom **Toggle Loop** action to activate or 
 
 RehearsAll appears automatically in Android Auto's media app list. No manual setup is needed.
 
-For development testing with the Desktop Head Unit (DHU):
-
-```bash
-adb forward tcp:5277 tcp:5277
-cd $ANDROID_HOME/extras/google/auto
-./desktop-head-unit
-```
-
 ---
 
 ## Settings
 
-Access settings via the gear icon on the file list screen.
+Access settings via the gear icon on the playback screen's top bar.
 
 ### Appearance
 
@@ -288,7 +307,11 @@ On Android 12+, colors adapt to your wallpaper via Material You dynamic color.
 ### Playback
 
 - **Skip Increment** — Choose how far forward/back buttons skip: 2s, 5s (default), 10s, 15s, or 30s
-- **Loop Crossfade** — When enabled, applies a smooth volume fade at loop boundaries for less jarring repeats
+- **Loop Crossfade** — When enabled, applies a smooth volume fade at loop boundaries for less jarring repeats (default: on)
+- **Waveform Overlay** — Choose what to display on the main playback screen:
+  - **None** (default) — Shows only track info
+  - **Loops** — Shows saved loops list overlaid on the track info area
+  - **Chunks** — Shows chunk markers overlaid on the track info area
 
 ---
 
@@ -300,3 +323,5 @@ On Android 12+, colors adapt to your wallpaper via Material You dynamic color.
 - **Headphone buttons:** Play/pause, next, and previous work with wired and Bluetooth headphone controls.
 - **Waveform extraction:** The waveform is generated in the background when you first import a file. If it's still loading when you open the file, a simple slider is shown as a fallback.
 - **File safety:** Imported files are copied to the app's private storage. Deleting the original file from your device won't affect the app's copy.
+- **Precise editing:** Use the +/- buttons in the loop editor for 0.25s adjustments, or tap the time display to enter an exact value.
+- **Quick loop loading:** With the Loops overlay enabled in Settings, tap any saved loop directly from the main playback screen.

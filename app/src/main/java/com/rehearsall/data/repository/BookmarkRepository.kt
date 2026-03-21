@@ -15,6 +15,7 @@ interface BookmarkRepository {
     fun getBookmarksForFile(audioFileId: Long): Flow<List<Bookmark>>
     suspend fun addBookmark(audioFileId: Long, positionMs: Long, name: String): Long
     suspend fun renameBookmark(id: Long, name: String)
+    suspend fun updateBookmarkPosition(id: Long, positionMs: Long)
     suspend fun deleteBookmark(id: Long)
 }
 
@@ -43,6 +44,10 @@ class BookmarkRepositoryImpl @Inject constructor(
 
     override suspend fun renameBookmark(id: Long, name: String) = withContext(Dispatchers.IO) {
         dao.updateName(id, name)
+    }
+
+    override suspend fun updateBookmarkPosition(id: Long, positionMs: Long) = withContext(Dispatchers.IO) {
+        dao.updatePosition(id, positionMs)
     }
 
     override suspend fun deleteBookmark(id: Long) = withContext(Dispatchers.IO) {

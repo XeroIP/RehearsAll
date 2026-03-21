@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.rehearsall.domain.model.OverlayMode
 import com.rehearsall.domain.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -23,6 +24,7 @@ class UserPreferencesRepository @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val SKIP_INCREMENT_MS = longPreferencesKey("skip_increment_ms")
         val LOOP_CROSSFADE = booleanPreferencesKey("loop_crossfade")
+        val WAVEFORM_OVERLAY = stringPreferencesKey("waveform_overlay")
     }
 
     val themeMode: Flow<ThemeMode> = dataStore.data.map { prefs ->
@@ -41,6 +43,14 @@ class UserPreferencesRepository @Inject constructor(
         prefs[LOOP_CROSSFADE] ?: true
     }
 
+    val waveformOverlay: Flow<OverlayMode> = dataStore.data.map { prefs ->
+        when (prefs[WAVEFORM_OVERLAY]) {
+            "LOOPS" -> OverlayMode.LOOPS
+            "CHUNKS" -> OverlayMode.CHUNKS
+            else -> OverlayMode.NONE
+        }
+    }
+
     suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { prefs ->
             prefs[THEME_MODE] = mode.name
@@ -56,6 +66,12 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setLoopCrossfade(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[LOOP_CROSSFADE] = enabled
+        }
+    }
+
+    suspend fun setWaveformOverlay(mode: OverlayMode) {
+        dataStore.edit { prefs ->
+            prefs[WAVEFORM_OVERLAY] = mode.name
         }
     }
 }

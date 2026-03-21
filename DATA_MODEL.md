@@ -381,6 +381,7 @@ object PreferenceKeys {
     val THEME_MODE = stringPreferencesKey("theme_mode")              // "LIGHT", "DARK", "SYSTEM"
     val SKIP_INCREMENT_MS = longPreferencesKey("skip_increment_ms")  // default 5000
     val LOOP_CROSSFADE = booleanPreferencesKey("loop_crossfade")     // default true
+    val WAVEFORM_OVERLAY = stringPreferencesKey("waveform_overlay")  // "NONE", "LOOPS", "CHUNKS" — default NONE
 }
 ```
 
@@ -389,6 +390,7 @@ DataStore is the modern replacement for SharedPreferences — it's coroutine-nat
 
 ```kotlin
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
+enum class OverlayMode { NONE, LOOPS, CHUNKS }
 ```
 
 ---

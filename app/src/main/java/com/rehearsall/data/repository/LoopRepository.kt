@@ -15,6 +15,7 @@ interface LoopRepository {
     fun getLoopsForFile(audioFileId: Long): Flow<List<Loop>>
     suspend fun saveLoop(audioFileId: Long, name: String, startMs: Long, endMs: Long): Long
     suspend fun renameLoop(id: Long, name: String)
+    suspend fun updateBounds(id: Long, startMs: Long, endMs: Long)
     suspend fun deleteLoop(id: Long)
 }
 
@@ -44,6 +45,10 @@ class LoopRepositoryImpl @Inject constructor(
 
     override suspend fun renameLoop(id: Long, name: String) = withContext(Dispatchers.IO) {
         dao.updateName(id, name)
+    }
+
+    override suspend fun updateBounds(id: Long, startMs: Long, endMs: Long) = withContext(Dispatchers.IO) {
+        dao.updateRegion(id, startMs, endMs)
     }
 
     override suspend fun deleteLoop(id: Long) = withContext(Dispatchers.IO) {

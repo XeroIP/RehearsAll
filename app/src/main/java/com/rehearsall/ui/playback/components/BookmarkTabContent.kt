@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -40,10 +41,13 @@ fun BookmarkTabContent(
     onSeekTo: (Long) -> Unit,
     onAdd: () -> Unit,
     onRename: (Long, String) -> Unit,
+    onUpdatePosition: (Long, Long) -> Unit,
     onDelete: (Long) -> Unit,
+    durationMs: Long = 0L,
     modifier: Modifier = Modifier,
 ) {
     var renameTarget by remember { mutableStateOf<Bookmark?>(null) }
+    var timeEditTarget by remember { mutableStateOf<Bookmark?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         if (bookmarks.isEmpty()) {
@@ -65,6 +69,7 @@ fun BookmarkTabContent(
                         bookmark = bookmark,
                         onTap = { onSeekTo(bookmark.positionMs) },
                         onRename = { renameTarget = bookmark },
+                        onEditTime = { timeEditTarget = bookmark },
                         onDelete = { onDelete(bookmark.id) },
                     )
                 }
@@ -91,6 +96,19 @@ fun BookmarkTabContent(
             onDismiss = { renameTarget = null },
         )
     }
+
+    timeEditTarget?.let { bookmark ->
+        TimeEditDialog(
+            title = "Edit Bookmark Time",
+            currentMs = bookmark.positionMs,
+            durationMs = durationMs,
+            onConfirm = { newMs ->
+                onUpdatePosition(bookmark.id, newMs)
+                timeEditTarget = null
+            },
+            onDismiss = { timeEditTarget = null },
+        )
+    }
 }
 
 @Composable
@@ -98,6 +116,7 @@ private fun BookmarkRow(
     bookmark: Bookmark,
     onTap: () -> Unit,
     onRename: () -> Unit,
+    onEditTime: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Row(
@@ -118,6 +137,13 @@ private fun BookmarkRow(
                 text = formatDuration(bookmark.positionMs),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onEditTime) {
+            Icon(
+                Icons.Default.Schedule,
+                contentDescription = "Edit time",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         IconButton(onClick = onRename) {

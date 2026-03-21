@@ -84,6 +84,7 @@ fun RehearsAllNavGraph(
             ) {
                 PlaybackScreen(
                     onNavigateBack = { navController.popBackStack() },
+                    onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 )
             }
 
@@ -95,6 +96,7 @@ fun RehearsAllNavGraph(
             ) {
                 PlaylistScreen(
                     onNavigateBack = { navController.popBackStack() },
+                    onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 )
             }
 
