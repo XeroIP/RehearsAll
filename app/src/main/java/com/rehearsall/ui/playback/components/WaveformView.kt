@@ -64,7 +64,7 @@ fun WaveformView(
 
     // HIGH CONTRAST colors
     val waveformColor = MaterialTheme.colorScheme.primary
-    val waveformBgColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
+    val waveformBgColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.30f)
     val cursorColor = MaterialTheme.colorScheme.error
     val centerLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
     val loopOverlayColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.25f)
@@ -274,24 +274,47 @@ fun WaveformView(
         if (visibleCount <= 0) return@Canvas
 
         val barWidth = canvasWidth / visibleCount
-        for (i in 0 until visibleCount) {
-            val amp = amplitudes[startIndex + i]
-            val barH = amp * waveHeight * 0.9f
-            val x = i * barWidth
+        if (barWidth < 2f) {
+            // Zoomed out: many samples map to fewer pixels. Render a per-pixel envelope (max
+            // amplitude per pixel column) so bars don't visually merge into a solid block.
+            val pixelCount = canvasWidth.toInt().coerceAtLeast(1)
+            for (px in 0 until pixelCount) {
+                val amp = maxAmplitudeForPixel(amplitudes, px, pixelCount, startFrac, endFrac)
+                val barH = amp * waveHeight * 0.9f
+                val x = px.toFloat()
+                drawRect(
+                    color = waveformBgColor,
+                    topLeft = Offset(x, centerY - waveHeight * 0.45f),
+                    size = Size(1f, waveHeight * 0.9f),
+                )
+                if (barH > 0f) {
+                    drawRect(
+                        color = waveformColor,
+                        topLeft = Offset(x, centerY - barH / 2f),
+                        size = Size(1f, barH.coerceAtLeast(1f)),
+                    )
+                }
+            }
+        } else {
+            for (i in 0 until visibleCount) {
+                val amp = amplitudes[startIndex + i]
+                val barH = amp * waveHeight * 0.9f
+                val x = i * barWidth
 
-            // Background bar (visible track)
-            drawRect(
-                color = waveformBgColor,
-                topLeft = Offset(x, centerY - waveHeight * 0.45f),
-                size = Size(barWidth.coerceAtLeast(1f), waveHeight * 0.9f),
-            )
+                // Background bar (visible track)
+                drawRect(
+                    color = waveformBgColor,
+                    topLeft = Offset(x, centerY - waveHeight * 0.45f),
+                    size = Size(barWidth.coerceAtLeast(1f), waveHeight * 0.9f),
+                )
 
-            // Amplitude bar (mirrored around center)
-            drawRect(
-                color = waveformColor,
-                topLeft = Offset(x, centerY - barH / 2f),
-                size = Size(barWidth.coerceAtLeast(1f), barH.coerceAtLeast(1f)),
-            )
+                // Amplitude bar (mirrored around center)
+                drawRect(
+                    color = waveformColor,
+                    topLeft = Offset(x, centerY - barH / 2f),
+                    size = Size(barWidth.coerceAtLeast(1f), barH.coerceAtLeast(1f)),
+                )
+            }
         }
 
         // Chunk marker lines
@@ -442,17 +465,40 @@ fun WaveformView(
             }
         }
 
-        // Playback cursor line
+        // Playback cursor line — 3 dp wide for visibility at all zoom levels
         if (positionFraction in startFrac..endFrac) {
             val cx = ((positionFraction - startFrac) / viewportWidth) * canvasWidth
             drawLine(
                 color = cursorColor,
                 start = Offset(cx, waveTop),
                 end = Offset(cx, waveTop + waveHeight),
-                strokeWidth = 2f,
+                strokeWidth = 3.dp.toPx(),
             )
         }
     }
+}
+
+/**
+ * Returns the maximum amplitude value in [amplitudes] that maps to pixel column [px] when the
+ * waveform is rendered at [pixelCount] columns wide over the fraction range [startFrac]..[endFrac].
+ *
+ * Used by the zoomed-out per-pixel envelope renderer to avoid multiple samples blending into
+ * a solid low-contrast block.
+ */
+internal fun maxAmplitudeForPixel(
+    amplitudes: FloatArray,
+    px: Int,
+    pixelCount: Int,
+    startFrac: Float,
+    endFrac: Float,
+): Float {
+    val fracStart = startFrac + (px.toFloat() / pixelCount) * (endFrac - startFrac)
+    val fracEnd = startFrac + ((px + 1f) / pixelCount) * (endFrac - startFrac)
+    val iStart = (fracStart * amplitudes.size).toInt().coerceIn(0, amplitudes.size - 1)
+    val iEnd = (fracEnd * amplitudes.size).toInt().coerceIn(iStart, amplitudes.size - 1)
+    var maxAmp = 0f
+    for (i in iStart..iEnd) maxAmp = maxOf(maxAmp, amplitudes[i])
+    return maxAmp
 }
 
 private fun tapToFraction(
