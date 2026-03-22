@@ -24,8 +24,9 @@ RehearsAll is an audio practice tool designed for musicians learning pieces and 
 ### Importing Audio Files
 
 1. Tap the **+** button (floating action button) on the file list screen
-2. The system file picker opens — select one or more audio files
+2. The system file picker opens — select one or more audio files (tap individually or use long-press multi-select in the picker)
 3. Files are copied to the app's private storage and appear in your library
+4. When importing multiple files, a progress bar appears and a summary snackbar confirms how many were added
 
 ### Supported Formats
 
@@ -39,6 +40,14 @@ RehearsAll is an audio practice tool designed for musicians learning pieces and 
 
 - **Rename:** Long-press a file in the list, then tap the rename option
 - **Delete:** Swipe a file left to remove it from your library (the original file is not affected)
+
+### Multi-Select
+
+Long-press any file to enter selection mode. A selection bar appears at the top of the list showing how many files are selected.
+
+- **Select more:** Tap additional files to add them to the selection (or tap again to deselect)
+- **Add to Playlist:** Tap the playlist icon in the selection bar, then choose a target playlist
+- **Cancel:** Tap the **✕** button in the selection bar to exit selection mode
 
 ---
 

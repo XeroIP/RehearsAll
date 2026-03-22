@@ -24,9 +24,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Settings
@@ -81,13 +84,14 @@ fun FileListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedFile by remember { mutableStateOf<AudioFile?>(null) }
     var showNewPlaylistDialog by remember { mutableStateOf(false) }
+    var showPlaylistPicker by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     val safLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let { viewModel.importFile(it) }
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris: List<Uri> ->
+        viewModel.importFiles(uris)
     }
 
     LaunchedEffect(Unit) {
@@ -103,8 +107,12 @@ fun FileListScreen(
                     snackbarHostState.showSnackbar("Renamed to \"${event.newName}\"")
                 is FileListEvent.PlaylistCreated ->
                     snackbarHostState.showSnackbar("Created \"${event.name}\"")
+                is FileListEvent.ImportBatchComplete ->
+                    snackbarHostState.showSnackbar("Imported ${event.count} files")
                 is FileListEvent.AddedToPlaylist ->
                     snackbarHostState.showSnackbar("Added \"${event.fileName}\" to \"${event.playlistName}\"")
+                is FileListEvent.AddedBatchToPlaylist ->
+                    snackbarHostState.showSnackbar("Added ${event.count} files to \"${event.playlistName}\"")
             }
         }
     }
@@ -178,11 +186,27 @@ fun FileListScreen(
                         CombinedList(
                             files = state.files,
                             playlists = state.playlists,
-                            onFileClick = onFileClick,
-                            onFileLongClick = { file -> selectedFile = file },
+                            selectedFileIds = state.selectedFileIds,
+                            isInSelectionMode = state.isInSelectionMode,
+                            onFileClick = { file ->
+                                if (state.isInSelectionMode) {
+                                    viewModel.toggleFileSelection(file.id)
+                                } else {
+                                    onFileClick(file.id)
+                                }
+                            },
+                            onFileLongClick = { file ->
+                                if (state.isInSelectionMode) {
+                                    viewModel.toggleFileSelection(file.id)
+                                } else {
+                                    viewModel.toggleFileSelection(file.id)
+                                }
+                            },
                             onFileDelete = { id -> viewModel.deleteFile(id) },
                             onPlaylistClick = onPlaylistClick,
                             onNewPlaylist = { showNewPlaylistDialog = true },
+                            onClearSelection = viewModel::clearSelection,
+                            onAddSelectedToPlaylist = { showPlaylistPicker = true },
                         )
                     }
                 }
@@ -202,25 +226,16 @@ fun FileListScreen(
         }
     }
 
-    // File details bottom sheet with "Add to Playlist"
-    selectedFile?.let { file ->
+    // Playlist picker for multi-select add
+    if (showPlaylistPicker) {
         val playlists = (uiState as? FileListUiState.Loaded)?.playlists ?: emptyList()
-        FileDetailsBottomSheet(
-            audioFile = file,
+        PlaylistPickerDialog(
             playlists = playlists,
-            onDismiss = { selectedFile = null },
-            onRename = { newName ->
-                viewModel.renameFile(file.id, newName)
-                selectedFile = null
+            onSelect = { playlistId ->
+                viewModel.addSelectedToPlaylist(playlistId)
+                showPlaylistPicker = false
             },
-            onDelete = {
-                viewModel.deleteFile(file.id)
-                selectedFile = null
-            },
-            onAddToPlaylist = { playlistId ->
-                viewModel.addFileToPlaylist(file.id, playlistId)
-                selectedFile = null
-            },
+            onDismiss = { showPlaylistPicker = false },
         )
     }
 
@@ -270,16 +285,31 @@ private fun EmptyState() {
 private fun CombinedList(
     files: List<AudioFile>,
     playlists: List<Playlist>,
-    onFileClick: (Long) -> Unit,
+    selectedFileIds: Set<Long>,
+    isInSelectionMode: Boolean,
+    onFileClick: (AudioFile) -> Unit,
     onFileLongClick: (AudioFile) -> Unit,
     onFileDelete: (Long) -> Unit,
     onPlaylistClick: (Long) -> Unit,
     onNewPlaylist: () -> Unit,
+    onClearSelection: () -> Unit,
+    onAddSelectedToPlaylist: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        // Selection mode bar
+        if (isInSelectionMode) {
+            item(key = "selection-bar") {
+                SelectionBar(
+                    selectedCount = selectedFileIds.size,
+                    onClear = onClearSelection,
+                    onAddToPlaylist = onAddSelectedToPlaylist,
+                )
+            }
+        }
+
         // Playlists section
         if (playlists.isNotEmpty() || true) { // Always show section for "New Playlist" button
             item(key = "playlists-header") {
@@ -370,7 +400,8 @@ private fun CombinedList(
             ) {
                 AudioFileCard(
                     audioFile = file,
-                    onClick = { onFileClick(file.id) },
+                    isSelected = file.id in selectedFileIds,
+                    onClick = { onFileClick(file) },
                     onLongClick = { onFileLongClick(file) },
                 )
             }
@@ -427,10 +458,52 @@ private fun PlaylistCard(
     }
 }
 
+@Composable
+private fun SelectionBar(
+    selectedCount: Int,
+    onClear: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = onClear,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Cancel selection",
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+        Text(
+            text = "$selectedCount selected",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(
+            onClick = onAddToPlaylist,
+            enabled = selectedCount > 0,
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlaylistAdd,
+                contentDescription = "Add selected to playlist",
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AudioFileCard(
     audioFile: AudioFile,
+    isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -449,12 +522,21 @@ private fun AudioFileCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Default.AudioFile,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Selected",
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.AudioFile,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -493,6 +575,52 @@ private fun AudioFileCard(
             }
         }
     }
+}
+
+@Composable
+private fun PlaylistPickerDialog(
+    playlists: List<Playlist>,
+    onSelect: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add to playlist") },
+        text = {
+            if (playlists.isEmpty()) {
+                Text("No playlists yet. Create one first.")
+            } else {
+                LazyColumn {
+                    items(items = playlists, key = { it.id }) { playlist ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(playlist.id) }
+                                .padding(vertical = 12.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = playlist.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 @Composable
