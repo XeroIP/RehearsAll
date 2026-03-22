@@ -1,5 +1,6 @@
 package com.rehearsall.playback
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
@@ -257,6 +258,7 @@ class RehearsAllPlaybackService : MediaLibraryService() {
             }
         }
 
+        @SuppressLint("WrongConstant")
         override fun onGetItem(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -329,6 +331,7 @@ class RehearsAllPlaybackService : MediaLibraryService() {
 
         // -- Custom commands --
 
+        @SuppressLint("WrongConstant")
         override fun onCustomCommand(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
