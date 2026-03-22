@@ -1,5 +1,8 @@
 package com.rehearsall.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -81,10 +84,20 @@ fun RehearsAllNavGraph(
                 arguments = listOf(
                     navArgument("audioFileId") { type = NavType.LongType }
                 ),
+                enterTransition = { fadeIn(animationSpec = tween(150)) },
+                exitTransition = { fadeOut(animationSpec = tween(150)) },
+                popEnterTransition = { fadeIn(animationSpec = tween(150)) },
+                popExitTransition = { fadeOut(animationSpec = tween(150)) },
             ) {
                 PlaybackScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToFile = { fileId ->
+                        navController.navigate(Screen.Playback.createRoute(fileId)) {
+                            launchSingleTop = true
+                            popUpTo(Screen.Playback.route) { inclusive = true }
+                        }
+                    },
                 )
             }
 

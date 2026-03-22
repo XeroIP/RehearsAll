@@ -210,7 +210,15 @@ class PlaybackManagerImpl @Inject constructor(
     }
 
     override fun skipToPrevious() {
-        browser?.seekToPreviousMediaItem()
+        val b = browser ?: return
+        // If more than 3 s into the track, or no previous item exists, restart from the beginning.
+        // Otherwise, skip to the previous track in the queue.
+        if (b.currentPosition > 3_000L || !b.hasPreviousMediaItem()) {
+            b.seekTo(0L)
+            _playbackState.value = _playbackState.value.copy(positionMs = 0L)
+        } else {
+            b.seekToPreviousMediaItem()
+        }
     }
 
     // -- Speed --

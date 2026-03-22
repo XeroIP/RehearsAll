@@ -20,9 +20,12 @@ import com.rehearsall.playback.LoopRegion
 import com.rehearsall.playback.PlaybackManager
 import com.rehearsall.playback.RepeatMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -51,12 +54,17 @@ class PlaybackViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PlaybackUiState())
     val uiState: StateFlow<PlaybackUiState> = _uiState.asStateFlow()
 
+    // Emits a file ID when skip-to-next/previous transitions to a different track
+    private val _navigationEvent = MutableSharedFlow<Long>(extraBufferCapacity = 1)
+    val navigationEvent: SharedFlow<Long> = _navigationEvent.asSharedFlow()
+
     private val skipIncrementMs: StateFlow<Long> = userPreferencesRepository.skipIncrementMs
         .stateIn(viewModelScope, SharingStarted.Eagerly, 5000L)
 
     init {
         loadFile()
         observePlaybackState()
+        observeCurrentFileId()
         observeBookmarks()
         observeLoops()
         observeLoopRegion()
@@ -131,6 +139,18 @@ class PlaybackViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    // When ExoPlayer transitions to a different track (skip-to-next/previous in a queue),
+    // emit a navigation event so the screen can replace itself with the new file's screen.
+    private fun observeCurrentFileId() {
+        viewModelScope.launch {
+            playbackManager.currentFileId.collect { fileId ->
+                if (fileId != null && fileId != audioFileId) {
+                    _navigationEvent.tryEmit(fileId)
+                }
+            }
+        }
     }
 
     private fun observeSkipIncrement() {

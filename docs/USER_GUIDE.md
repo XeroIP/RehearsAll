@@ -54,13 +54,13 @@ Tap any file in the library to open the playback screen.
 | Skip Forward | Fast-forward button (configurable: 2s–30s) |
 | Skip Backward | Rewind button (same increment) |
 | Next Track | Skip to next file in queue |
-| Previous Track | Skip to previous file in queue |
+| Previous Track | If more than 3 seconds into the track, restarts from the beginning. If within the first 3 seconds, skips to the previous file in the queue. |
 | Shuffle | Toggle random queue order |
 | Repeat | Cycle: Off → Repeat All → Repeat One |
 
 ### Speed Control
 
-1. Tap the **speed badge** (e.g., "1.00x") below the transport controls
+1. Tap the **speed icon button** (with a badge showing the current speed, e.g., "1.0x") below the transport controls
 2. Use the slider to adjust from **0.25x** to **3.0x**
 3. Pitch is preserved at all speeds
 4. Preset buttons available for common speeds (0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x)
@@ -100,7 +100,7 @@ When configured in Settings > Playback > Waveform Overlay, the main playback scr
 
 ## Markers & Editing
 
-Tap **Markers** below the transport controls to open the Markers bottom sheet. This is the central hub for managing all position-based markers.
+Tap the **Markers icon button** below the transport controls to open the Markers bottom sheet. This is the central hub for managing all position-based markers.
 
 ### Markers Sheet Features
 
