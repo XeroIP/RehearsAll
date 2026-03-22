@@ -412,7 +412,7 @@ private fun PlaybackContent(
                 loopStartFraction = loopStartFrac,
                 loopEndFraction = loopEndFrac,
                 editable = false,
-                showPositionHandle = true,
+                showPositionHandle = false,
                 chunkMarkerFractions = chunkFractions,
                 activeChunkStartFraction = activeChunkStart,
                 activeChunkEndFraction = activeChunkEnd,
