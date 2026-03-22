@@ -1,7 +1,5 @@
 package com.rehearsall.ui.filelist
 
-import android.content.ClipData
-import android.content.ClipDescription
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,7 +27,6 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAdd
@@ -38,7 +35,6 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -65,13 +61,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.ui.draganddrop.DragAndDropEvent
-import androidx.compose.ui.draganddrop.DragAndDropTarget
-import androidx.compose.ui.draganddrop.DragAndDropTransferData
-import androidx.compose.ui.draganddrop.dragAndDropSource
-import androidx.compose.ui.draganddrop.dragAndDropTarget
-import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -213,9 +202,6 @@ fun FileListScreen(
                             onNewPlaylist = { showNewPlaylistDialog = true },
                             onClearSelection = viewModel::clearSelection,
                             onAddSelectedToPlaylist = { showPlaylistPicker = true },
-                            onDropFileToPlaylist = { fileId, playlistId ->
-                                viewModel.addFileToPlaylist(fileId, playlistId)
-                            },
                         )
                     }
                 }
@@ -303,7 +289,6 @@ private fun CombinedList(
     onNewPlaylist: () -> Unit,
     onClearSelection: () -> Unit,
     onAddSelectedToPlaylist: () -> Unit,
-    onDropFileToPlaylist: (fileId: Long, playlistId: Long) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -350,7 +335,6 @@ private fun CombinedList(
                 PlaylistCard(
                     playlist = playlist,
                     onClick = { onPlaylistClick(playlist.id) },
-                    onFileDrop = { fileId -> onDropFileToPlaylist(fileId, playlist.id) },
                 )
             }
 
@@ -424,51 +408,12 @@ private fun CombinedList(
 private fun PlaylistCard(
     playlist: Playlist,
     onClick: () -> Unit,
-    onFileDrop: (fileId: Long) -> Unit,
 ) {
-    var isDropTarget by remember { mutableStateOf(false) }
-
-    val dropTarget = remember(onFileDrop) {
-        object : DragAndDropTarget {
-            override fun onEntered(event: DragAndDropEvent) {
-                isDropTarget = true
-            }
-            override fun onExited(event: DragAndDropEvent) {
-                isDropTarget = false
-            }
-            override fun onEnded(event: DragAndDropEvent) {
-                isDropTarget = false
-            }
-            override fun onDrop(event: DragAndDropEvent): Boolean {
-                val clipData = event.toAndroidDragEvent().clipData ?: return false
-                val fileId = clipData.getItemAt(0)?.text?.toString()?.toLongOrNull()
-                    ?: return false
-                onFileDrop(fileId)
-                return true
-            }
-        }
-    }
-
-    val borderColor by animateColorAsState(
-        targetValue = if (isDropTarget) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.surface,
-        label = "drop-target-border",
-    )
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 2.dp)
-            .clickable(onClick = onClick)
-            .dragAndDropTarget(
-                shouldStartDragAndDrop = { event ->
-                    event.mimeTypes().contains(ClipDescription.MIMETYPE_TEXT_PLAIN)
-                },
-                target = dropTarget,
-            ),
-        border = if (isDropTarget) {
-            androidx.compose.foundation.BorderStroke(2.dp, borderColor)
-        } else null,
+            .clickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier
@@ -480,8 +425,7 @@ private fun PlaylistCard(
                 imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = if (isDropTarget) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.secondary,
+                tint = MaterialTheme.colorScheme.secondary,
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -625,26 +569,6 @@ private fun AudioFileCard(
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Drag handle — drag this to drop the file onto a playlist card
-            Icon(
-                imageVector = Icons.Default.DragHandle,
-                contentDescription = "Drag to add to playlist",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.dragAndDropSource {
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = {
-                            startTransfer(
-                                DragAndDropTransferData(
-                                    clipData = ClipData.newPlainText("fileId", audioFile.id.toString()),
-                                )
-                            )
-                        },
-                        onDrag = { _, _ -> },
-                    )
-                },
-            )
         }
     }
 }
