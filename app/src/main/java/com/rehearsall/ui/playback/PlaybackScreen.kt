@@ -29,7 +29,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -74,6 +76,7 @@ import com.rehearsall.ui.playback.components.WaveformView
 @Composable
 fun PlaybackScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToFile: (Long) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     viewModel: PlaybackViewModel = hiltViewModel(),
 ) {
@@ -86,6 +89,13 @@ fun PlaybackScreen(
             || uiState.practiceState is PracticeState.Pausing
     BackHandler(enabled = isPracticing) {
         showExitConfirmation = true
+    }
+
+    // Navigate to a different file when skip-to-next/previous changes the current track
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { fileId ->
+            onNavigateToFile(fileId)
+        }
     }
 
     // Show error messages via snackbar
@@ -493,36 +503,34 @@ private fun PlaybackContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Speed, markers, and queue badges
+        // Speed, markers, and queue buttons (icon-only)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         ) {
-            FilledTonalButton(onClick = viewModel::toggleSpeedSheet) {
-                Icon(
-                    imageVector = Icons.Default.Speed,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-                Text("%.2fx".format(playback.speed))
+            BadgedBox(
+                badge = { Badge { Text("%.1fx".format(playback.speed)) } },
+            ) {
+                FilledTonalIconButton(onClick = viewModel::toggleSpeedSheet) {
+                    Icon(
+                        imageVector = Icons.Default.Speed,
+                        contentDescription = "Speed: %.2fx".format(playback.speed),
+                    )
+                }
             }
 
-            FilledTonalButton(onClick = viewModel::toggleMarkersSheet) {
+            FilledTonalIconButton(onClick = viewModel::toggleMarkersSheet) {
                 Icon(
                     imageVector = Icons.Default.Bookmarks,
                     contentDescription = "Markers",
-                    modifier = Modifier.padding(end = 8.dp),
                 )
-                Text("Markers")
             }
 
-            FilledTonalButton(onClick = viewModel::toggleQueueSheet) {
+            FilledTonalIconButton(onClick = viewModel::toggleQueueSheet) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                     contentDescription = "Queue",
-                    modifier = Modifier.padding(end = 8.dp),
                 )
-                Text("Queue")
             }
         }
 
