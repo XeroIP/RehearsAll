@@ -79,22 +79,21 @@ The interactive waveform gives you visual context for the audio.
 
 ### Main Playback Waveform
 
-The main playback screen shows a large waveform with:
+The waveform appears automatically on the playback screen when a loop is active. It shows:
 - **Tap to seek** — tap anywhere to jump to that position
-- **Position handle** — drag the handle at the bottom to scrub through the audio
 - **Pinch to zoom** — zoom in/out to see more or less detail
 - **Zoom buttons** — dedicated +/- buttons below the waveform
 - **Horizontal scroll** — pan through the waveform when zoomed in
-- **Overlay markers** — optionally shows saved loops or chunk markers (configured in Settings)
+- **Overlay list** — saved loops or chunk markers, shown in the top-left corner
 
 The main waveform is **read-only** — loop boundary handles are not draggable here. Use the Markers sheet for editing.
 
-### Waveform Overlay
+### Dismissing the Waveform
 
-When configured in Settings > Playback > Waveform Overlay, the main playback screen shows a list of your saved loops or chunk markers overlaid on the track info area:
-- **Loops overlay** — shows saved loop names and time ranges; tap to load a loop
-- **Chunks overlay** — shows chunk marker positions; tap to seek to a marker
-- **None** (default) — shows only track info (title and artist)
+When the overlay list is visible, tap the **✕ button** in its header to:
+- Close the overlay list
+- Clear the active loop
+- Return to the default playback screen (track info only)
 
 ---
 
@@ -308,20 +307,16 @@ On Android 12+, colors adapt to your wallpaper via Material You dynamic color.
 
 - **Skip Increment** — Choose how far forward/back buttons skip: 2s, 5s (default), 10s, 15s, or 30s
 - **Loop Crossfade** — When enabled, applies a smooth volume fade at loop boundaries for less jarring repeats (default: on)
-- **Waveform Overlay** — Choose what to display on the main playback screen:
-  - **None** (default) — Shows only track info
-  - **Loops** — Shows saved loops list overlaid on the track info area
-  - **Chunks** — Shows chunk markers overlaid on the track info area
 
 ---
 
 ## Tips & Tricks
 
 - **Resume playback:** The app remembers your position and speed for every file. Reopen a file and it picks up where you left off.
-- **Mini player:** When you navigate away from the playback screen, a mini player bar appears at the bottom so you can see what's playing and tap to return.
+- **Mini player:** When you navigate away from the playback screen, a mini player bar appears at the bottom showing the track name, elapsed time, and a play/pause button. Tap it to return to the full playback screen.
 - **Notification controls:** Full transport controls are available in the notification and on the lock screen while audio is playing.
 - **Headphone buttons:** Play/pause, next, and previous work with wired and Bluetooth headphone controls.
 - **Waveform extraction:** The waveform is generated in the background when you first import a file. If it's still loading when you open the file, a simple slider is shown as a fallback.
 - **File safety:** Imported files are copied to the app's private storage. Deleting the original file from your device won't affect the app's copy.
 - **Precise editing:** Use the +/- buttons in the loop editor for 0.25s adjustments, or tap the time display to enter an exact value.
-- **Quick loop loading:** With the Loops overlay enabled in Settings, tap any saved loop directly from the main playback screen.
+- **Quick loop loading:** Load any saved loop from the Markers sheet — the waveform and loop overlay will appear on the playback screen automatically.

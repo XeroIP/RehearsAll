@@ -41,7 +41,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.rehearsall.domain.model.OverlayMode
 import com.rehearsall.domain.model.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,12 +97,6 @@ fun SettingsScreen(
                 checked = state.loopCrossfade,
                 onCheckedChange = viewModel::setLoopCrossfade,
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            WaveformOverlaySelector(
-                selected = state.waveformOverlay,
-                onSelect = viewModel::setWaveformOverlay,
-            )
-
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // -- About --
@@ -228,54 +221,6 @@ private fun SwitchRow(
             checked = checked,
             onCheckedChange = null,
         )
-    }
-}
-
-@Composable
-private fun WaveformOverlaySelector(
-    selected: OverlayMode,
-    onSelect: (OverlayMode) -> Unit,
-) {
-    val options = listOf(
-        OverlayMode.NONE to "None",
-        OverlayMode.LOOPS to "Loops",
-        OverlayMode.CHUNKS to "Chunks",
-    )
-    Text(
-        text = "Waveform Overlay",
-        style = MaterialTheme.typography.bodyLarge,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-    )
-    Text(
-        text = "Show saved loops or chunks on the playback screen",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
-    Column(modifier = Modifier.selectableGroup()) {
-        options.forEach { (mode, label) ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = selected == mode,
-                        onClick = { onSelect(mode) },
-                        role = Role.RadioButton,
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                RadioButton(
-                    selected = selected == mode,
-                    onClick = null,
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(start = 16.dp),
-                )
-            }
-        }
     }
 }
 

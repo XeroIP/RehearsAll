@@ -11,6 +11,7 @@ import com.rehearsall.data.repository.LoopRepository
 import com.rehearsall.data.repository.PracticeSettingsRepository
 import com.rehearsall.data.repository.WaveformRepository
 import com.rehearsall.domain.model.Loop
+import com.rehearsall.domain.model.OverlayMode
 import com.rehearsall.domain.model.PracticeMode
 import com.rehearsall.domain.model.PracticeSettings
 import java.io.File
@@ -348,8 +349,26 @@ class PlaybackViewModel @Inject constructor(
     private fun observeLoopRegion() {
         viewModelScope.launch {
             playbackManager.loopRegion.collect { region ->
-                _uiState.update { it.copy(activeLoop = region) }
+                _uiState.update { state ->
+                    state.copy(
+                        activeLoop = region,
+                        // Auto-show the loops overlay when a loop is activated; auto-hide when cleared.
+                        overlayMode = when {
+                            region != null -> OverlayMode.LOOPS
+                            state.overlayMode == OverlayMode.LOOPS -> OverlayMode.NONE
+                            else -> state.overlayMode
+                        },
+                    )
+                }
             }
+        }
+    }
+
+    fun dismissWaveform() {
+        playbackManager.clearLoopRegion()
+        _uiState.update { it.copy(overlayMode = OverlayMode.NONE) }
+        viewModelScope.launch {
+            userPreferencesRepository.setWaveformOverlay(OverlayMode.NONE)
         }
     }
 

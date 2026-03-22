@@ -65,7 +65,7 @@ fun MiniPlayer(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(onClick = onTap)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
@@ -74,6 +74,13 @@ fun MiniPlayer(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
+                    )
+
+                    Text(
+                        text = formatDuration(playbackState.positionMs),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp),
                     )
 
                     IconButton(
