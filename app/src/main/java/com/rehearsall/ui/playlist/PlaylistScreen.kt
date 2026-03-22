@@ -1,6 +1,7 @@
 package com.rehearsall.ui.playlist
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,15 +16,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -58,6 +63,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.domain.model.PlaylistItem
 import com.rehearsall.ui.common.formatDuration
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -177,6 +184,7 @@ fun PlaylistScreen(
                         items = state.items,
                         onItemClick = { index -> viewModel.playPlaylist(index) },
                         onRemove = { itemId -> viewModel.removeItem(itemId) },
+                        onReorder = { from, to -> viewModel.reorderItems(from, to) },
                         modifier = Modifier.padding(innerPadding),
                     )
                 }
@@ -267,59 +275,84 @@ private fun PlaylistItemList(
     items: List<PlaylistItem>,
     onItemClick: (Int) -> Unit,
     onRemove: (Long) -> Unit,
+    onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Local list tracks drag-in-progress order; resets when DB-backed items change.
+    var localItems by remember(items) { mutableStateOf(items) }
+
+    val lazyListState = rememberLazyListState()
+    val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        localItems = localItems.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
+        onReorder(from.index, to.index)
+    }
+
     LazyColumn(
+        state = lazyListState,
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         itemsIndexed(
-            items = items,
+            items = localItems,
             key = { _, item -> item.id },
         ) { index, item ->
-            val dismissState = rememberSwipeToDismissBoxState(
-                confirmValueChange = { value ->
-                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                        onRemove(item.id)
-                        true
-                    } else {
-                        false
-                    }
-                },
-            )
+            ReorderableItem(reorderState, key = item.id) { isDragging ->
+                val elevation by animateDpAsState(
+                    targetValue = if (isDragging) 6.dp else 0.dp,
+                    label = "drag-elevation",
+                )
 
-            SwipeToDismissBox(
-                state = dismissState,
-                backgroundContent = {
-                    val color by animateColorAsState(
-                        targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                            MaterialTheme.colorScheme.errorContainer
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value == SwipeToDismissBoxValue.EndToStart) {
+                            onRemove(item.id)
+                            true
                         } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                        label = "swipe-bg",
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(color)
-                            .padding(horizontal = 24.dp),
-                        contentAlignment = Alignment.CenterEnd,
+                            false
+                        }
+                    },
+                )
+
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {
+                        val color by animateColorAsState(
+                            targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                                MaterialTheme.colorScheme.errorContainer
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                            label = "swipe-bg",
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(color)
+                                .padding(horizontal = 24.dp),
+                            contentAlignment = Alignment.CenterEnd,
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Remove",
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        }
+                    },
+                    enableDismissFromStartToEnd = false,
+                ) {
+                    Card(
+                        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
                     ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Remove",
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                        PlaylistTrackRow(
+                            index = index + 1,
+                            item = item,
+                            onClick = { onItemClick(index) },
+                            dragHandleModifier = Modifier.draggableHandle(),
                         )
                     }
-                },
-                enableDismissFromStartToEnd = false,
-            ) {
-                PlaylistTrackRow(
-                    index = index + 1,
-                    item = item,
-                    onClick = { onItemClick(index) },
-                )
+                }
             }
         }
     }
@@ -330,6 +363,7 @@ private fun PlaylistTrackRow(
     index: Int,
     item: PlaylistItem,
     onClick: () -> Unit,
+    dragHandleModifier: Modifier = Modifier,
 ) {
     Row(
         modifier = Modifier
@@ -368,6 +402,15 @@ private fun PlaylistTrackRow(
             text = formatDuration(item.durationMs),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Icon(
+            imageVector = Icons.Default.DragHandle,
+            contentDescription = "Drag to reorder",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = dragHandleModifier,
         )
     }
 }

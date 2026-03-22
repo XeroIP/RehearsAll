@@ -77,6 +77,9 @@ dependencies {
     implementation(libs.material3.window.size)
     implementation(libs.material3.adaptive.navigation)
 
+    // Drag-to-reorder for LazyColumn
+    implementation(libs.reorderable)
+
     // AndroidX
     implementation(libs.core.ktx)
     implementation(libs.appcompat)
