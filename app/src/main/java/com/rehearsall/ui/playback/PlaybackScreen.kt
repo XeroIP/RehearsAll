@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -324,11 +325,12 @@ private fun PlaybackContent(
                 }
             }
 
-            // Overlay: saved loops or chunks list
+            // Overlay: saved loops or chunks list with dismiss button
             when (uiState.overlayMode) {
                 OverlayMode.LOOPS -> if (uiState.savedLoops.isNotEmpty()) {
                     OverlayList(
                         title = "Saved Loops",
+                        onDismiss = viewModel::dismissWaveform,
                         modifier = Modifier
                             .fillMaxWidth(0.5f)
                             .fillMaxHeight(0.5f)
@@ -347,6 +349,7 @@ private fun PlaybackContent(
                 OverlayMode.CHUNKS -> if (uiState.chunkMarkers.isNotEmpty()) {
                     OverlayList(
                         title = "Chunk Markers",
+                        onDismiss = viewModel::dismissWaveform,
                         modifier = Modifier
                             .fillMaxWidth(0.5f)
                             .fillMaxHeight(0.5f)
@@ -370,7 +373,7 @@ private fun PlaybackContent(
         val waveform = uiState.waveformState
         val overlayMode = uiState.overlayMode
 
-        if (waveform is WaveformState.Ready && duration > 1L) {
+        if (uiState.showWaveform && waveform is WaveformState.Ready && duration > 1L) {
             val positionFraction = playback.positionMs.toFloat() / duration.toFloat()
 
             val loopStartFrac = if (overlayMode == OverlayMode.LOOPS) {
@@ -541,6 +544,7 @@ private fun PlaybackContent(
 @Composable
 private fun OverlayList(
     title: String,
+    onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
 ) {
@@ -551,12 +555,30 @@ private fun OverlayList(
             .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f))
             .padding(8.dp),
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (onDismiss != null) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(20.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss waveform",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()

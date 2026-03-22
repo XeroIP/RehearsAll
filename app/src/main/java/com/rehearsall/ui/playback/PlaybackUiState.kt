@@ -35,4 +35,7 @@ data class PlaybackUiState(
     val waveformState: WaveformState = WaveformState.Loading,
     val skipIncrementMs: Long = 5000L,
     val overlayMode: OverlayMode = OverlayMode.NONE,
-)
+) {
+    /** True when the waveform and overlay list should be visible on the playback screen. */
+    val showWaveform: Boolean get() = overlayMode != OverlayMode.NONE
+}
