@@ -245,6 +245,14 @@ See [Practice Modes](Practice-Modes) for a detailed explanation of each mode.
 
 Tap a playlist to open it, then tap **Play All** to load all tracks into the queue.
 
+### Reordering Playlist Tracks
+
+Inside a playlist, each track has a **drag handle** (⠿) on the right side. Press and hold the handle to pick up the track, then drag it up or down to the desired position. Release to drop. The new order is saved automatically.
+
+### Drag-and-Drop from Library
+
+On the main library screen, each file card has a **drag handle** on the right side. Long-press and drag the handle, then drop it onto any playlist card to add the file to that playlist. The target playlist highlights with a border as you hover over it.
+
 ---
 
 ## Queue & Repeat
