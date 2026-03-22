@@ -7,6 +7,7 @@ import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.PlaylistRepository
 import com.rehearsall.domain.model.AudioFile
 import com.rehearsall.domain.model.Playlist
+import java.time.Instant
 import com.rehearsall.playback.PlaybackManager
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -35,23 +36,44 @@ class FileListViewModelSelectionTest {
     private lateinit var playlistRepository: PlaylistRepository
     private lateinit var viewModel: FileListViewModel
 
+    private val now = Instant.EPOCH
+
     private val file1 = AudioFile(
         id = 1L,
         displayName = "Track One",
-        internalPath = "/data/track1.mp3",
-        durationMs = 60_000L,
-        format = "mp3",
         artist = null,
+        title = null,
+        format = "mp3",
+        durationMs = 60_000L,
+        fileSizeBytes = 0L,
+        internalPath = "/data/track1.mp3",
+        importedAt = now,
+        lastPlayedAt = null,
+        lastPositionMs = 0L,
+        lastSpeed = 1f,
     )
     private val file2 = AudioFile(
         id = 2L,
         displayName = "Track Two",
-        internalPath = "/data/track2.mp3",
-        durationMs = 90_000L,
-        format = "mp3",
         artist = null,
+        title = null,
+        format = "mp3",
+        durationMs = 90_000L,
+        fileSizeBytes = 0L,
+        internalPath = "/data/track2.mp3",
+        importedAt = now,
+        lastPlayedAt = null,
+        lastPositionMs = 0L,
+        lastSpeed = 1f,
     )
-    private val playlist = Playlist(id = 10L, name = "Favorites", trackCount = 0, totalDurationMs = 0L)
+    private val playlist = Playlist(
+        id = 10L,
+        name = "Favorites",
+        trackCount = 0,
+        totalDurationMs = 0L,
+        createdAt = now,
+        updatedAt = now,
+    )
 
     @Before
     fun setup() {

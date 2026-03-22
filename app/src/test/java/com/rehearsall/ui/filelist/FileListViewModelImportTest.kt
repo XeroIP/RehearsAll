@@ -6,6 +6,7 @@ import com.rehearsall.data.audio.AudioImporter
 import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.PlaylistRepository
 import com.rehearsall.domain.model.AudioFile
+import java.time.Instant
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -34,10 +35,16 @@ class FileListViewModelImportTest {
     private val fakeFile = AudioFile(
         id = 1L,
         displayName = "Track One",
-        internalPath = "/data/track1.mp3",
-        durationMs = 60_000L,
-        format = "mp3",
         artist = null,
+        title = null,
+        format = "mp3",
+        durationMs = 60_000L,
+        fileSizeBytes = 0L,
+        internalPath = "/data/track1.mp3",
+        importedAt = Instant.EPOCH,
+        lastPlayedAt = null,
+        lastPositionMs = 0L,
+        lastSpeed = 1f,
     )
 
     private val uri1 = mockk<Uri>(relaxed = true)
