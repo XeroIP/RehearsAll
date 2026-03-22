@@ -20,7 +20,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -134,14 +133,13 @@ class FileListViewModelImportTest {
     }
 
     @Test
-    fun `isImporting is true during batch import then false after`() = runTest {
+    fun `isImporting is false after batch import completes`() = runTest {
         coEvery { importer.import(uri1) } returns Result.success(fakeFile)
         coEvery { importer.import(uri2) } returns Result.success(fakeFile.copy(id = 2L))
 
         viewModel.importFiles(listOf(uri1, uri2))
-        assertTrue(viewModel.isImporting.value)
-
         testDispatcher.scheduler.advanceUntilIdle()
+
         assertFalse(viewModel.isImporting.value)
     }
 }

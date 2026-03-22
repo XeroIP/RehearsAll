@@ -495,7 +495,7 @@ internal fun maxAmplitudeForPixel(
     val fracStart = startFrac + (px.toFloat() / pixelCount) * (endFrac - startFrac)
     val fracEnd = startFrac + ((px + 1f) / pixelCount) * (endFrac - startFrac)
     val iStart = (fracStart * amplitudes.size).toInt().coerceIn(0, amplitudes.size - 1)
-    val iEnd = (fracEnd * amplitudes.size).toInt().coerceIn(iStart, amplitudes.size - 1)
+    val iEnd = ((fracEnd * amplitudes.size).toInt() - 1).coerceIn(iStart, amplitudes.size - 1)
     var maxAmp = 0f
     for (i in iStart..iEnd) maxAmp = maxOf(maxAmp, amplitudes[i])
     return maxAmp
