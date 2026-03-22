@@ -73,6 +73,69 @@ class FileListViewModel @Inject constructor(
         }
     }
 
+    fun importFiles(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        if (uris.size == 1) {
+            importFile(uris.first())
+            return
+        }
+        viewModelScope.launch {
+            _isImporting.value = true
+            var successCount = 0
+            var errorCount = 0
+            for (uri in uris) {
+                importer.import(uri).fold(
+                    onSuccess = { successCount++ },
+                    onFailure = { error ->
+                        errorCount++
+                        Timber.w("Batch import failed for %s: %s", uri, error.message)
+                    },
+                )
+            }
+            _isImporting.value = false
+            if (successCount > 0) {
+                _events.emit(FileListEvent.ImportBatchComplete(successCount))
+            }
+            if (errorCount > 0) {
+                _events.emit(FileListEvent.ImportError("$errorCount file(s) failed to import"))
+            }
+        }
+    }
+
+    fun toggleFileSelection(id: Long) {
+        val state = _uiState.value as? FileListUiState.Loaded ?: return
+        val newSelected = if (id in state.selectedFileIds) {
+            state.selectedFileIds - id
+        } else {
+            state.selectedFileIds + id
+        }
+        _uiState.value = state.copy(selectedFileIds = newSelected)
+    }
+
+    fun clearSelection() {
+        val state = _uiState.value as? FileListUiState.Loaded ?: return
+        _uiState.value = state.copy(selectedFileIds = emptySet())
+    }
+
+    fun addSelectedToPlaylist(playlistId: Long) {
+        val state = _uiState.value as? FileListUiState.Loaded ?: return
+        val selectedIds = state.selectedFileIds.toList()
+        if (selectedIds.isEmpty()) return
+        viewModelScope.launch {
+            val playlist = playlistRepository.getById(playlistId)
+            for (fileId in selectedIds) {
+                playlistRepository.addFileToPlaylist(playlistId, fileId)
+            }
+            clearSelection()
+            _events.emit(
+                FileListEvent.AddedBatchToPlaylist(
+                    count = selectedIds.size,
+                    playlistName = playlist?.name ?: "Playlist",
+                )
+            )
+        }
+    }
+
     fun deleteFile(id: Long) {
         viewModelScope.launch {
             val file = repository.getById(id) ?: return@launch
