@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AudioFileDao {
-
     @Insert
     suspend fun insert(entity: AudioFileEntity): Long
 
@@ -20,7 +19,7 @@ interface AudioFileDao {
 
     @Query(
         "SELECT * FROM audio_files WHERE lastPlayedAt IS NOT NULL " +
-            "ORDER BY lastPlayedAt DESC LIMIT :limit"
+            "ORDER BY lastPlayedAt DESC LIMIT :limit",
     )
     fun getRecent(limit: Int = 20): Flow<List<AudioFileEntity>>
 
@@ -29,7 +28,7 @@ interface AudioFileDao {
 
     @Query(
         "SELECT * FROM audio_files WHERE lastPlayedAt IS NOT NULL " +
-            "ORDER BY lastPlayedAt DESC LIMIT :limit"
+            "ORDER BY lastPlayedAt DESC LIMIT :limit",
     )
     suspend fun getRecentList(limit: Int = 20): List<AudioFileEntity>
 
@@ -37,17 +36,30 @@ interface AudioFileDao {
     suspend fun delete(id: Long)
 
     @Query("UPDATE audio_files SET displayName = :displayName WHERE id = :id")
-    suspend fun updateDisplayName(id: Long, displayName: String)
+    suspend fun updateDisplayName(
+        id: Long,
+        displayName: String,
+    )
 
     @Query(
         "UPDATE audio_files SET lastPlayedAt = :lastPlayedAt, lastPositionMs = :lastPositionMs " +
-            "WHERE id = :id"
+            "WHERE id = :id",
     )
-    suspend fun updateLastPlayed(id: Long, lastPlayedAt: Long, lastPositionMs: Long)
+    suspend fun updateLastPlayed(
+        id: Long,
+        lastPlayedAt: Long,
+        lastPositionMs: Long,
+    )
 
     @Query("UPDATE audio_files SET lastPositionMs = :positionMs WHERE id = :id")
-    suspend fun updateLastPosition(id: Long, positionMs: Long)
+    suspend fun updateLastPosition(
+        id: Long,
+        positionMs: Long,
+    )
 
     @Query("UPDATE audio_files SET lastSpeed = :speed WHERE id = :id")
-    suspend fun updateLastSpeed(id: Long, speed: Float)
+    suspend fun updateLastSpeed(
+        id: Long,
+        speed: Float,
+    )
 }

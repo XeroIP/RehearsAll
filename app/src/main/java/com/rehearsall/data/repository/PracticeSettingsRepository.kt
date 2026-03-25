@@ -11,21 +11,28 @@ import javax.inject.Singleton
 
 interface PracticeSettingsRepository {
     suspend fun getForFile(audioFileId: Long): PracticeSettings
-    suspend fun save(audioFileId: Long, settings: PracticeSettings)
+
+    suspend fun save(
+        audioFileId: Long,
+        settings: PracticeSettings,
+    )
 }
 
 @Singleton
-class PracticeSettingsRepositoryImpl @Inject constructor(
-    private val dao: PracticeSettingsDao,
-) : PracticeSettingsRepository {
+class PracticeSettingsRepositoryImpl
+    @Inject
+    constructor(
+        private val dao: PracticeSettingsDao,
+    ) : PracticeSettingsRepository {
+        override suspend fun getForFile(audioFileId: Long): PracticeSettings =
+            withContext(Dispatchers.IO) {
+                dao.getForFile(audioFileId)?.toDomain() ?: PracticeSettings()
+            }
 
-    override suspend fun getForFile(audioFileId: Long): PracticeSettings =
-        withContext(Dispatchers.IO) {
-            dao.getForFile(audioFileId)?.toDomain() ?: PracticeSettings()
-        }
-
-    override suspend fun save(audioFileId: Long, settings: PracticeSettings) =
-        withContext(Dispatchers.IO) {
+        override suspend fun save(
+            audioFileId: Long,
+            settings: PracticeSettings,
+        ) = withContext(Dispatchers.IO) {
             dao.insertOrUpdate(
                 PracticeSettingsEntity(
                     audioFileId = audioFileId,
@@ -33,18 +40,20 @@ class PracticeSettingsRepositoryImpl @Inject constructor(
                     gapBetweenRepsMs = settings.gapBetweenRepsMs,
                     gapBetweenChunksMs = settings.gapBetweenChunksMs,
                     selectedMode = settings.mode.name,
-                )
+                ),
             )
         }
-}
+    }
 
-private fun PracticeSettingsEntity.toDomain(): PracticeSettings = PracticeSettings(
-    repeatCount = repeatCount,
-    gapBetweenRepsMs = gapBetweenRepsMs,
-    gapBetweenChunksMs = gapBetweenChunksMs,
-    mode = try {
-        PracticeMode.valueOf(selectedMode)
-    } catch (_: IllegalArgumentException) {
-        PracticeMode.SINGLE_CHUNK_LOOP
-    },
-)
+private fun PracticeSettingsEntity.toDomain(): PracticeSettings =
+    PracticeSettings(
+        repeatCount = repeatCount,
+        gapBetweenRepsMs = gapBetweenRepsMs,
+        gapBetweenChunksMs = gapBetweenChunksMs,
+        mode =
+            try {
+                PracticeMode.valueOf(selectedMode)
+            } catch (_: IllegalArgumentException) {
+                PracticeMode.SINGLE_CHUNK_LOOP
+            },
+    )

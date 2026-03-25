@@ -12,7 +12,6 @@ import com.rehearsall.domain.model.PracticeStep
  *   (0..marker1), (marker1..marker2), ..., (markerN..duration)
  */
 object GeneratePracticeStepsUseCase {
-
     /**
      * Derives chunk boundaries from markers.
      * Returns list of (startMs, endMs, label) triples sorted by position.
@@ -36,7 +35,7 @@ object GeneratePracticeStepsUseCase {
                     sorted[i].positionMs,
                     sorted[i + 1].positionMs,
                     "Chunk ${i + 2}",
-                )
+                ),
             )
         }
 
@@ -93,7 +92,7 @@ object GeneratePracticeStepsUseCase {
                 label = first.third,
                 repeatCount = repeatCount,
                 chunkRange = first.third,
-            )
+            ),
         )
 
         // For each subsequent chunk: solo, then cumulative from start
@@ -108,7 +107,7 @@ object GeneratePracticeStepsUseCase {
                     label = "${current.third} (solo)",
                     repeatCount = repeatCount,
                     chunkRange = current.third,
-                )
+                ),
             )
 
             // Cumulative: chunk 1 through current
@@ -119,7 +118,7 @@ object GeneratePracticeStepsUseCase {
                     label = "Chunks 1–${i + 1}",
                     repeatCount = repeatCount,
                     chunkRange = "1–${i + 1}",
-                )
+                ),
             )
         }
 

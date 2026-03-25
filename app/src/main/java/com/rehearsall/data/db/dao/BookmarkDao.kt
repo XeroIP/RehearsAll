@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BookmarkDao {
-
     @Insert
     suspend fun insert(entity: BookmarkEntity): Long
 
@@ -19,10 +18,16 @@ interface BookmarkDao {
     suspend fun getById(id: Long): BookmarkEntity?
 
     @Query("UPDATE bookmarks SET name = :name WHERE id = :id")
-    suspend fun updateName(id: Long, name: String)
+    suspend fun updateName(
+        id: Long,
+        name: String,
+    )
 
     @Query("UPDATE bookmarks SET positionMs = :positionMs WHERE id = :id")
-    suspend fun updatePosition(id: Long, positionMs: Long)
+    suspend fun updatePosition(
+        id: Long,
+        positionMs: Long,
+    )
 
     @Query("DELETE FROM bookmarks WHERE id = :id")
     suspend fun delete(id: Long)

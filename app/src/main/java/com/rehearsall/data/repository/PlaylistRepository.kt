@@ -17,105 +17,143 @@ import javax.inject.Singleton
 
 interface PlaylistRepository {
     fun getAllPlaylists(): Flow<List<Playlist>>
+
     fun getPlaylistItems(playlistId: Long): Flow<List<PlaylistItem>>
+
     suspend fun getById(id: Long): Playlist?
+
     suspend fun createPlaylist(name: String): Long
-    suspend fun renamePlaylist(id: Long, name: String)
+
+    suspend fun renamePlaylist(
+        id: Long,
+        name: String,
+    )
+
     suspend fun deletePlaylist(id: Long)
-    suspend fun addFileToPlaylist(playlistId: Long, audioFileId: Long)
-    suspend fun removeItem(itemId: Long, playlistId: Long)
-    suspend fun reorderItems(playlistId: Long, items: List<Pair<Long, Int>>)
+
+    suspend fun addFileToPlaylist(
+        playlistId: Long,
+        audioFileId: Long,
+    )
+
+    suspend fun removeItem(
+        itemId: Long,
+        playlistId: Long,
+    )
+
+    suspend fun reorderItems(
+        playlistId: Long,
+        items: List<Pair<Long, Int>>,
+    )
 }
 
 @Singleton
-class PlaylistRepositoryImpl @Inject constructor(
-    private val playlistDao: PlaylistDao,
-    private val playlistItemDao: PlaylistItemDao,
-) : PlaylistRepository {
-
-    override fun getAllPlaylists(): Flow<List<Playlist>> {
-        return playlistDao.getAll().map { entities ->
-            entities.map { entity ->
-                val count = playlistItemDao.getItemCount(entity.id)
-                val duration = playlistItemDao.getTotalDuration(entity.id)
-                entity.toDomain(count, duration)
+class PlaylistRepositoryImpl
+    @Inject
+    constructor(
+        private val playlistDao: PlaylistDao,
+        private val playlistItemDao: PlaylistItemDao,
+    ) : PlaylistRepository {
+        override fun getAllPlaylists(): Flow<List<Playlist>> {
+            return playlistDao.getAll().map { entities ->
+                entities.map { entity ->
+                    val count = playlistItemDao.getItemCount(entity.id)
+                    val duration = playlistItemDao.getTotalDuration(entity.id)
+                    entity.toDomain(count, duration)
+                }
             }
         }
-    }
 
-    override fun getPlaylistItems(playlistId: Long): Flow<List<PlaylistItem>> {
-        return playlistItemDao.getItemsWithFiles(playlistId).map { items ->
-            items.map { it.toDomain() }
+        override fun getPlaylistItems(playlistId: Long): Flow<List<PlaylistItem>> {
+            return playlistItemDao.getItemsWithFiles(playlistId).map { items ->
+                items.map { it.toDomain() }
+            }
         }
-    }
 
-    override suspend fun getById(id: Long): Playlist? = withContext(Dispatchers.IO) {
-        val entity = playlistDao.getById(id) ?: return@withContext null
-        val count = playlistItemDao.getItemCount(id)
-        val duration = playlistItemDao.getTotalDuration(id)
-        entity.toDomain(count, duration)
-    }
+        override suspend fun getById(id: Long): Playlist? =
+            withContext(Dispatchers.IO) {
+                val entity = playlistDao.getById(id) ?: return@withContext null
+                val count = playlistItemDao.getItemCount(id)
+                val duration = playlistItemDao.getTotalDuration(id)
+                entity.toDomain(count, duration)
+            }
 
-    override suspend fun createPlaylist(name: String): Long = withContext(Dispatchers.IO) {
-        val now = System.currentTimeMillis()
-        playlistDao.insert(
-            PlaylistEntity(name = name, createdAt = now, updatedAt = now)
-        )
-    }
+        override suspend fun createPlaylist(name: String): Long =
+            withContext(Dispatchers.IO) {
+                val now = System.currentTimeMillis()
+                playlistDao.insert(
+                    PlaylistEntity(name = name, createdAt = now, updatedAt = now),
+                )
+            }
 
-    override suspend fun renamePlaylist(id: Long, name: String) = withContext(Dispatchers.IO) {
-        playlistDao.updateName(id, name)
-    }
+        override suspend fun renamePlaylist(
+            id: Long,
+            name: String,
+        ) = withContext(Dispatchers.IO) {
+            playlistDao.updateName(id, name)
+        }
 
-    override suspend fun deletePlaylist(id: Long) = withContext(Dispatchers.IO) {
-        playlistDao.delete(id) // CASCADE deletes items
-    }
+        override suspend fun deletePlaylist(id: Long) =
+            withContext(Dispatchers.IO) {
+                playlistDao.delete(id) // CASCADE deletes items
+            }
 
-    override suspend fun addFileToPlaylist(playlistId: Long, audioFileId: Long) =
-        withContext(Dispatchers.IO) {
+        override suspend fun addFileToPlaylist(
+            playlistId: Long,
+            audioFileId: Long,
+        ) = withContext(Dispatchers.IO) {
             val maxOrder = playlistItemDao.getMaxOrderIndex(playlistId) ?: -1
             playlistItemDao.insert(
                 PlaylistItemEntity(
                     playlistId = playlistId,
                     audioFileId = audioFileId,
                     orderIndex = maxOrder + 1,
-                )
+                ),
             )
             playlistDao.touch(playlistId)
         }
 
-    override suspend fun removeItem(itemId: Long, playlistId: Long) =
-        withContext(Dispatchers.IO) {
+        override suspend fun removeItem(
+            itemId: Long,
+            playlistId: Long,
+        ) = withContext(Dispatchers.IO) {
             playlistItemDao.delete(itemId)
             playlistDao.touch(playlistId)
         }
 
-    override suspend fun reorderItems(playlistId: Long, items: List<Pair<Long, Int>>) =
-        withContext(Dispatchers.IO) {
+        override suspend fun reorderItems(
+            playlistId: Long,
+            items: List<Pair<Long, Int>>,
+        ) = withContext(Dispatchers.IO) {
             items.forEach { (id, order) ->
                 playlistItemDao.updateOrder(id, order)
             }
             playlistDao.touch(playlistId)
         }
-}
+    }
 
-private fun PlaylistEntity.toDomain(trackCount: Int, totalDurationMs: Long): Playlist = Playlist(
-    id = id,
-    name = name,
-    trackCount = trackCount,
-    totalDurationMs = totalDurationMs,
-    createdAt = Instant.ofEpochMilli(createdAt),
-    updatedAt = Instant.ofEpochMilli(updatedAt),
-)
+private fun PlaylistEntity.toDomain(
+    trackCount: Int,
+    totalDurationMs: Long,
+): Playlist =
+    Playlist(
+        id = id,
+        name = name,
+        trackCount = trackCount,
+        totalDurationMs = totalDurationMs,
+        createdAt = Instant.ofEpochMilli(createdAt),
+        updatedAt = Instant.ofEpochMilli(updatedAt),
+    )
 
-private fun PlaylistItemWithFile.toDomain(): PlaylistItem = PlaylistItem(
-    id = id,
-    playlistId = playlistId,
-    audioFileId = audioFileId,
-    orderIndex = orderIndex,
-    displayName = displayName,
-    artist = artist,
-    durationMs = durationMs,
-    internalPath = internalPath,
-    format = format,
-)
+private fun PlaylistItemWithFile.toDomain(): PlaylistItem =
+    PlaylistItem(
+        id = id,
+        playlistId = playlistId,
+        audioFileId = audioFileId,
+        orderIndex = orderIndex,
+        displayName = displayName,
+        artist = artist,
+        durationMs = durationMs,
+        internalPath = internalPath,
+        format = format,
+    )

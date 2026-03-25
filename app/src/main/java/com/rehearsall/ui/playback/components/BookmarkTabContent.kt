@@ -55,9 +55,10 @@ fun BookmarkTabContent(
                 text = "No bookmarks yet.\nTap + to add one at the current position.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(24.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
             )
         } else {
             LazyColumn(
@@ -78,9 +79,10 @@ fun BookmarkTabContent(
 
         FloatingActionButton(
             onClick = onAdd,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add bookmark")
         }
@@ -120,10 +122,11 @@ private fun BookmarkRow(
     onDelete: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onTap)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onTap)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {

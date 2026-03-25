@@ -1,14 +1,10 @@
 package com.rehearsall.ui.filelist
 
-import android.net.Uri
 import app.cash.turbine.test
-import com.rehearsall.data.audio.AudioImporter
 import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.PlaylistRepository
 import com.rehearsall.domain.model.AudioFile
 import com.rehearsall.domain.model.Playlist
-import java.time.Instant
-import com.rehearsall.playback.PlaybackManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -26,10 +22,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FileListViewModelSelectionTest {
-
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var repository: AudioFileRepository
@@ -38,61 +34,67 @@ class FileListViewModelSelectionTest {
 
     private val now = Instant.EPOCH
 
-    private val file1 = AudioFile(
-        id = 1L,
-        displayName = "Track One",
-        artist = null,
-        title = null,
-        format = "mp3",
-        durationMs = 60_000L,
-        fileSizeBytes = 0L,
-        internalPath = "/data/track1.mp3",
-        importedAt = now,
-        lastPlayedAt = null,
-        lastPositionMs = 0L,
-        lastSpeed = 1f,
-    )
-    private val file2 = AudioFile(
-        id = 2L,
-        displayName = "Track Two",
-        artist = null,
-        title = null,
-        format = "mp3",
-        durationMs = 90_000L,
-        fileSizeBytes = 0L,
-        internalPath = "/data/track2.mp3",
-        importedAt = now,
-        lastPlayedAt = null,
-        lastPositionMs = 0L,
-        lastSpeed = 1f,
-    )
-    private val playlist = Playlist(
-        id = 10L,
-        name = "Favorites",
-        trackCount = 0,
-        totalDurationMs = 0L,
-        createdAt = now,
-        updatedAt = now,
-    )
+    private val file1 =
+        AudioFile(
+            id = 1L,
+            displayName = "Track One",
+            artist = null,
+            title = null,
+            format = "mp3",
+            durationMs = 60_000L,
+            fileSizeBytes = 0L,
+            internalPath = "/data/track1.mp3",
+            importedAt = now,
+            lastPlayedAt = null,
+            lastPositionMs = 0L,
+            lastSpeed = 1f,
+        )
+    private val file2 =
+        AudioFile(
+            id = 2L,
+            displayName = "Track Two",
+            artist = null,
+            title = null,
+            format = "mp3",
+            durationMs = 90_000L,
+            fileSizeBytes = 0L,
+            internalPath = "/data/track2.mp3",
+            importedAt = now,
+            lastPlayedAt = null,
+            lastPositionMs = 0L,
+            lastSpeed = 1f,
+        )
+    private val playlist =
+        Playlist(
+            id = 10L,
+            name = "Favorites",
+            trackCount = 0,
+            totalDurationMs = 0L,
+            createdAt = now,
+            updatedAt = now,
+        )
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
-        repository = mockk(relaxed = true) {
-            every { getAllFiles() } returns flowOf(listOf(file1, file2))
-        }
-        playlistRepository = mockk(relaxed = true) {
-            every { getAllPlaylists() } returns flowOf(listOf(playlist))
-            coEvery { getById(playlist.id) } returns playlist
-        }
+        repository =
+            mockk(relaxed = true) {
+                every { getAllFiles() } returns flowOf(listOf(file1, file2))
+            }
+        playlistRepository =
+            mockk(relaxed = true) {
+                every { getAllPlaylists() } returns flowOf(listOf(playlist))
+                coEvery { getById(playlist.id) } returns playlist
+            }
 
-        viewModel = FileListViewModel(
-            repository = repository,
-            playlistRepository = playlistRepository,
-            importer = mockk(relaxed = true),
-            playbackManager = mockk(relaxed = true),
-        )
+        viewModel =
+            FileListViewModel(
+                repository = repository,
+                playlistRepository = playlistRepository,
+                importer = mockk(relaxed = true),
+                playbackManager = mockk(relaxed = true),
+            )
     }
 
     @After
@@ -107,130 +109,141 @@ class FileListViewModelSelectionTest {
     // --- toggleFileSelection ---
 
     @Test
-    fun `toggleFileSelection adds id to selectedFileIds`() = runTest {
-        advanceToLoaded()
+    fun `toggleFileSelection adds id to selectedFileIds`() =
+        runTest {
+            advanceToLoaded()
 
-        viewModel.toggleFileSelection(file1.id)
+            viewModel.toggleFileSelection(file1.id)
 
-        val state = viewModel.uiState.value as FileListUiState.Loaded
-        assertTrue(file1.id in state.selectedFileIds)
-    }
-
-    @Test
-    fun `toggleFileSelection removes id when already selected`() = runTest {
-        advanceToLoaded()
-        viewModel.toggleFileSelection(file1.id)
-
-        viewModel.toggleFileSelection(file1.id)
-
-        val state = viewModel.uiState.value as FileListUiState.Loaded
-        assertFalse(file1.id in state.selectedFileIds)
-    }
+            val state = viewModel.uiState.value as FileListUiState.Loaded
+            assertTrue(file1.id in state.selectedFileIds)
+        }
 
     @Test
-    fun `toggleFileSelection can select multiple ids independently`() = runTest {
-        advanceToLoaded()
+    fun `toggleFileSelection removes id when already selected`() =
+        runTest {
+            advanceToLoaded()
+            viewModel.toggleFileSelection(file1.id)
 
-        viewModel.toggleFileSelection(file1.id)
-        viewModel.toggleFileSelection(file2.id)
+            viewModel.toggleFileSelection(file1.id)
 
-        val state = viewModel.uiState.value as FileListUiState.Loaded
-        assertTrue(file1.id in state.selectedFileIds)
-        assertTrue(file2.id in state.selectedFileIds)
-    }
-
-    @Test
-    fun `isInSelectionMode is true when any file is selected`() = runTest {
-        advanceToLoaded()
-
-        viewModel.toggleFileSelection(file1.id)
-
-        val state = viewModel.uiState.value as FileListUiState.Loaded
-        assertTrue(state.isInSelectionMode)
-    }
+            val state = viewModel.uiState.value as FileListUiState.Loaded
+            assertFalse(file1.id in state.selectedFileIds)
+        }
 
     @Test
-    fun `isInSelectionMode is false when no files are selected`() = runTest {
-        advanceToLoaded()
+    fun `toggleFileSelection can select multiple ids independently`() =
+        runTest {
+            advanceToLoaded()
 
-        val state = viewModel.uiState.value as FileListUiState.Loaded
-        assertFalse(state.isInSelectionMode)
-    }
+            viewModel.toggleFileSelection(file1.id)
+            viewModel.toggleFileSelection(file2.id)
+
+            val state = viewModel.uiState.value as FileListUiState.Loaded
+            assertTrue(file1.id in state.selectedFileIds)
+            assertTrue(file2.id in state.selectedFileIds)
+        }
+
+    @Test
+    fun `isInSelectionMode is true when any file is selected`() =
+        runTest {
+            advanceToLoaded()
+
+            viewModel.toggleFileSelection(file1.id)
+
+            val state = viewModel.uiState.value as FileListUiState.Loaded
+            assertTrue(state.isInSelectionMode)
+        }
+
+    @Test
+    fun `isInSelectionMode is false when no files are selected`() =
+        runTest {
+            advanceToLoaded()
+
+            val state = viewModel.uiState.value as FileListUiState.Loaded
+            assertFalse(state.isInSelectionMode)
+        }
 
     // --- clearSelection ---
 
     @Test
-    fun `clearSelection empties selectedFileIds`() = runTest {
-        advanceToLoaded()
-        viewModel.toggleFileSelection(file1.id)
-        viewModel.toggleFileSelection(file2.id)
+    fun `clearSelection empties selectedFileIds`() =
+        runTest {
+            advanceToLoaded()
+            viewModel.toggleFileSelection(file1.id)
+            viewModel.toggleFileSelection(file2.id)
 
-        viewModel.clearSelection()
+            viewModel.clearSelection()
 
-        val state = viewModel.uiState.value as FileListUiState.Loaded
-        assertTrue(state.selectedFileIds.isEmpty())
-    }
+            val state = viewModel.uiState.value as FileListUiState.Loaded
+            assertTrue(state.selectedFileIds.isEmpty())
+        }
 
     @Test
-    fun `clearSelection on empty selection does not crash`() = runTest {
-        advanceToLoaded()
+    fun `clearSelection on empty selection does not crash`() =
+        runTest {
+            advanceToLoaded()
 
-        viewModel.clearSelection() // no-op, should not throw
+            viewModel.clearSelection() // no-op, should not throw
 
-        val state = viewModel.uiState.value as FileListUiState.Loaded
-        assertTrue(state.selectedFileIds.isEmpty())
-    }
+            val state = viewModel.uiState.value as FileListUiState.Loaded
+            assertTrue(state.selectedFileIds.isEmpty())
+        }
 
     // --- addSelectedToPlaylist ---
 
     @Test
-    fun `addSelectedToPlaylist calls addFileToPlaylist for each selected id`() = runTest {
-        advanceToLoaded()
-        viewModel.toggleFileSelection(file1.id)
-        viewModel.toggleFileSelection(file2.id)
+    fun `addSelectedToPlaylist calls addFileToPlaylist for each selected id`() =
+        runTest {
+            advanceToLoaded()
+            viewModel.toggleFileSelection(file1.id)
+            viewModel.toggleFileSelection(file2.id)
 
-        viewModel.addSelectedToPlaylist(playlist.id)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { playlistRepository.addFileToPlaylist(playlist.id, file1.id) }
-        coVerify { playlistRepository.addFileToPlaylist(playlist.id, file2.id) }
-    }
-
-    @Test
-    fun `addSelectedToPlaylist clears selection after adding`() = runTest {
-        advanceToLoaded()
-        viewModel.toggleFileSelection(file1.id)
-
-        viewModel.addSelectedToPlaylist(playlist.id)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val state = viewModel.uiState.value as FileListUiState.Loaded
-        assertTrue(state.selectedFileIds.isEmpty())
-    }
-
-    @Test
-    fun `addSelectedToPlaylist emits AddedBatchToPlaylist event`() = runTest {
-        advanceToLoaded()
-        viewModel.toggleFileSelection(file1.id)
-        viewModel.toggleFileSelection(file2.id)
-
-        viewModel.events.test {
             viewModel.addSelectedToPlaylist(playlist.id)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val event = awaitItem() as FileListEvent.AddedBatchToPlaylist
-            assertEquals(2, event.count)
-            assertEquals(playlist.name, event.playlistName)
+            coVerify { playlistRepository.addFileToPlaylist(playlist.id, file1.id) }
+            coVerify { playlistRepository.addFileToPlaylist(playlist.id, file2.id) }
         }
-    }
 
     @Test
-    fun `addSelectedToPlaylist does nothing when selection is empty`() = runTest {
-        advanceToLoaded()
+    fun `addSelectedToPlaylist clears selection after adding`() =
+        runTest {
+            advanceToLoaded()
+            viewModel.toggleFileSelection(file1.id)
 
-        viewModel.addSelectedToPlaylist(playlist.id)
-        testDispatcher.scheduler.advanceUntilIdle()
+            viewModel.addSelectedToPlaylist(playlist.id)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 0) { playlistRepository.addFileToPlaylist(any(), any()) }
-    }
+            val state = viewModel.uiState.value as FileListUiState.Loaded
+            assertTrue(state.selectedFileIds.isEmpty())
+        }
+
+    @Test
+    fun `addSelectedToPlaylist emits AddedBatchToPlaylist event`() =
+        runTest {
+            advanceToLoaded()
+            viewModel.toggleFileSelection(file1.id)
+            viewModel.toggleFileSelection(file2.id)
+
+            viewModel.events.test {
+                viewModel.addSelectedToPlaylist(playlist.id)
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val event = awaitItem() as FileListEvent.AddedBatchToPlaylist
+                assertEquals(2, event.count)
+                assertEquals(playlist.name, event.playlistName)
+            }
+        }
+
+    @Test
+    fun `addSelectedToPlaylist does nothing when selection is empty`() =
+        runTest {
+            advanceToLoaded()
+
+            viewModel.addSelectedToPlaylist(playlist.id)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify(exactly = 0) { playlistRepository.addFileToPlaylist(any(), any()) }
+        }
 }

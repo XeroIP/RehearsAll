@@ -4,35 +4,36 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.QueueMusic
-import androidx.compose.material.icons.filled.Bookmarks
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,18 +50,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.draw.clip
 import com.rehearsall.data.repository.WaveformState
 import com.rehearsall.domain.model.ChunkMarker
 import com.rehearsall.domain.model.Loop
@@ -87,8 +87,9 @@ fun PlaybackScreen(
     var showExitConfirmation by remember { mutableStateOf(false) }
 
     // Predictive back: confirm if practice session is active
-    val isPracticing = uiState.practiceState is PracticeState.Playing
-            || uiState.practiceState is PracticeState.Pausing
+    val isPracticing =
+        uiState.practiceState is PracticeState.Playing ||
+            uiState.practiceState is PracticeState.Pausing
     BackHandler(enabled = isPracticing) {
         showExitConfirmation = true
     }
@@ -104,10 +105,11 @@ fun PlaybackScreen(
     LaunchedEffect(uiState.errorMessage) {
         val message = uiState.errorMessage ?: return@LaunchedEffect
         if (uiState.fileNotFound) {
-            val result = snackbarHostState.showSnackbar(
-                message = message,
-                actionLabel = "Remove",
-            )
+            val result =
+                snackbarHostState.showSnackbar(
+                    message = message,
+                    actionLabel = "Remove",
+                )
             if (result == SnackbarResult.ActionPerformed) {
                 viewModel.removeDeletedFile()
                 onNavigateBack()
@@ -177,9 +179,10 @@ fun PlaybackScreen(
         when {
             uiState.isLoading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
@@ -188,9 +191,10 @@ fun PlaybackScreen(
 
             uiState.fileNotFound -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -206,10 +210,11 @@ fun PlaybackScreen(
                 PlaybackContent(
                     uiState = uiState,
                     viewModel = viewModel,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 24.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .padding(horizontal = 24.dp),
                 )
             }
         }
@@ -302,9 +307,10 @@ private fun PlaybackContent(
     ) {
         // Track info + overlay area
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
             // Default: track info centered
@@ -328,43 +334,47 @@ private fun PlaybackContent(
 
             // Overlay: saved loops or chunks list with dismiss button
             when (uiState.overlayMode) {
-                OverlayMode.LOOPS -> if (uiState.savedLoops.isNotEmpty()) {
-                    OverlayList(
-                        title = "Saved Loops",
-                        onDismiss = viewModel::dismissWaveform,
-                        modifier = Modifier
-                            .fillMaxWidth(0.5f)
-                            .fillMaxHeight(0.5f)
-                            .align(Alignment.TopStart),
-                    ) {
-                        items(uiState.savedLoops, key = { it.id }) { loop ->
-                            OverlayLoopRow(
-                                loop = loop,
-                                onTap = {
-                                    viewModel.loadLoop(loop)
-                                },
-                            )
+                OverlayMode.LOOPS ->
+                    if (uiState.savedLoops.isNotEmpty()) {
+                        OverlayList(
+                            title = "Saved Loops",
+                            onDismiss = viewModel::dismissWaveform,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth(0.5f)
+                                    .fillMaxHeight(0.5f)
+                                    .align(Alignment.TopStart),
+                        ) {
+                            items(uiState.savedLoops, key = { it.id }) { loop ->
+                                OverlayLoopRow(
+                                    loop = loop,
+                                    onTap = {
+                                        viewModel.loadLoop(loop)
+                                    },
+                                )
+                            }
                         }
                     }
-                }
-                OverlayMode.CHUNKS -> if (uiState.chunkMarkers.isNotEmpty()) {
-                    OverlayList(
-                        title = "Chunk Markers",
-                        onDismiss = viewModel::dismissWaveform,
-                        modifier = Modifier
-                            .fillMaxWidth(0.5f)
-                            .fillMaxHeight(0.5f)
-                            .align(Alignment.TopStart),
-                    ) {
-                        items(uiState.chunkMarkers, key = { it.id }) { marker ->
-                            OverlayChunkRow(
-                                marker = marker,
-                                durationMs = uiState.playbackState.durationMs,
-                                onTap = { viewModel.seekToChunk(marker.positionMs) },
-                            )
+                OverlayMode.CHUNKS ->
+                    if (uiState.chunkMarkers.isNotEmpty()) {
+                        OverlayList(
+                            title = "Chunk Markers",
+                            onDismiss = viewModel::dismissWaveform,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth(0.5f)
+                                    .fillMaxHeight(0.5f)
+                                    .align(Alignment.TopStart),
+                        ) {
+                            items(uiState.chunkMarkers, key = { it.id }) { marker ->
+                                OverlayChunkRow(
+                                    marker = marker,
+                                    durationMs = uiState.playbackState.durationMs,
+                                    onTap = { viewModel.seekToChunk(marker.positionMs) },
+                                )
+                            }
                         }
                     }
-                }
                 OverlayMode.NONE -> { /* show track info only */ }
             }
         }
@@ -377,27 +387,42 @@ private fun PlaybackContent(
         if (uiState.showWaveform && waveform is WaveformState.Ready && duration > 1L) {
             val positionFraction = playback.positionMs.toFloat() / duration.toFloat()
 
-            val loopStartFrac = if (overlayMode == OverlayMode.LOOPS) {
-                uiState.activeLoop?.let {
-                    if (it.endMs > it.startMs) it.startMs.toFloat() / duration else null
+            val loopStartFrac =
+                if (overlayMode == OverlayMode.LOOPS) {
+                    uiState.activeLoop?.let {
+                        if (it.endMs > it.startMs) it.startMs.toFloat() / duration else null
+                    }
+                } else {
+                    null
                 }
-            } else null
-            val loopEndFrac = if (overlayMode == OverlayMode.LOOPS) {
-                uiState.activeLoop?.let {
-                    if (it.endMs > it.startMs) it.endMs.toFloat() / duration else null
+            val loopEndFrac =
+                if (overlayMode == OverlayMode.LOOPS) {
+                    uiState.activeLoop?.let {
+                        if (it.endMs > it.startMs) it.endMs.toFloat() / duration else null
+                    }
+                } else {
+                    null
                 }
-            } else null
 
-            val chunkFractions = if (overlayMode == OverlayMode.CHUNKS) {
-                uiState.chunkMarkers.map { it.positionMs.toFloat() / duration }
-            } else emptyList()
+            val chunkFractions =
+                if (overlayMode == OverlayMode.CHUNKS) {
+                    uiState.chunkMarkers.map { it.positionMs.toFloat() / duration }
+                } else {
+                    emptyList()
+                }
             val practiceStep = (uiState.practiceState as? PracticeState.Playing)?.currentStep
-            val activeChunkStart = if (overlayMode == OverlayMode.CHUNKS) {
-                practiceStep?.let { it.startMs.toFloat() / duration }
-            } else null
-            val activeChunkEnd = if (overlayMode == OverlayMode.CHUNKS) {
-                practiceStep?.let { it.endMs.toFloat() / duration }
-            } else null
+            val activeChunkStart =
+                if (overlayMode == OverlayMode.CHUNKS) {
+                    practiceStep?.let { it.startMs.toFloat() / duration }
+                } else {
+                    null
+                }
+            val activeChunkEnd =
+                if (overlayMode == OverlayMode.CHUNKS) {
+                    practiceStep?.let { it.endMs.toFloat() / duration }
+                } else {
+                    null
+                }
 
             var wfZoom by remember { mutableFloatStateOf(1f) }
             var wfScroll by remember { mutableFloatStateOf(0f) }
@@ -550,11 +575,12 @@ private fun OverlayList(
     content: LazyListScope.() -> Unit,
 ) {
     Column(
-        modifier = modifier
-            .padding(start = 4.dp, top = 4.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f))
-            .padding(8.dp),
+        modifier =
+            modifier
+                .padding(start = 4.dp, top = 4.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f))
+                .padding(8.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -581,9 +607,10 @@ private fun OverlayList(
         }
         Spacer(modifier = Modifier.height(4.dp))
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(0.dp),
             content = content,
         )
@@ -596,9 +623,10 @@ private fun OverlayLoopRow(
     onTap: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .clickable(onClick = onTap)
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+        modifier =
+            Modifier
+                .clickable(onClick = onTap)
+                .padding(horizontal = 4.dp, vertical = 4.dp),
     ) {
         Text(
             text = loop.name,
@@ -625,8 +653,9 @@ private fun OverlayChunkRow(
         text = formatDuration(marker.positionMs),
         style = MaterialTheme.typography.bodySmall,
         softWrap = false,
-        modifier = Modifier
-            .clickable(onClick = onTap)
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+        modifier =
+            Modifier
+                .clickable(onClick = onTap)
+                .padding(horizontal = 4.dp, vertical = 4.dp),
     )
 }

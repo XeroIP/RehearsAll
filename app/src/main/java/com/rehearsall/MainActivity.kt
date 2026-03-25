@@ -18,7 +18,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
 
@@ -32,11 +31,12 @@ class MainActivity : ComponentActivity() {
             val themeMode by userPreferencesRepository.themeMode
                 .collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
 
-            val darkTheme = when (themeMode) {
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-            }
+            val darkTheme =
+                when (themeMode) {
+                    ThemeMode.LIGHT -> false
+                    ThemeMode.DARK -> true
+                    ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                }
 
             RehearsAllTheme(darkTheme = darkTheme) {
                 RehearsAllNavGraph(windowSizeClass = windowSizeClass)

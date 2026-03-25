@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LoopDao {
-
     @Insert
     suspend fun insert(loop: LoopEntity): Long
 
@@ -22,10 +21,17 @@ interface LoopDao {
     suspend fun getById(id: Long): LoopEntity?
 
     @Query("UPDATE loops SET name = :name WHERE id = :id")
-    suspend fun updateName(id: Long, name: String)
+    suspend fun updateName(
+        id: Long,
+        name: String,
+    )
 
     @Query("UPDATE loops SET startMs = :startMs, endMs = :endMs WHERE id = :id")
-    suspend fun updateRegion(id: Long, startMs: Long, endMs: Long)
+    suspend fun updateRegion(
+        id: Long,
+        startMs: Long,
+        endMs: Long,
+    )
 
     @Query("DELETE FROM loops WHERE id = :id")
     suspend fun delete(id: Long)

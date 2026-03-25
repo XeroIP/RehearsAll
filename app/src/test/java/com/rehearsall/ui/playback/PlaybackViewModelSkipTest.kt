@@ -38,7 +38,6 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlaybackViewModelSkipTest {
-
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var playbackManager: PlaybackManager
@@ -48,14 +47,15 @@ class PlaybackViewModelSkipTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
-        playbackManager = mockk(relaxed = true) {
-            every { playbackState } returns MutableStateFlow(PlaybackState.IDLE)
-            every { currentFileId } returns currentFileIdFlow
-            every { repeatMode } returns MutableStateFlow(RepeatMode.OFF)
-            every { shuffleEnabled } returns MutableStateFlow(false)
-            every { currentQueue } returns MutableStateFlow(emptyList())
-            every { loopRegion } returns MutableStateFlow(null)
-        }
+        playbackManager =
+            mockk(relaxed = true) {
+                every { playbackState } returns MutableStateFlow(PlaybackState.IDLE)
+                every { currentFileId } returns currentFileIdFlow
+                every { repeatMode } returns MutableStateFlow(RepeatMode.OFF)
+                every { shuffleEnabled } returns MutableStateFlow(false)
+                every { currentQueue } returns MutableStateFlow(emptyList())
+                every { loopRegion } returns MutableStateFlow(null)
+            }
     }
 
     @After
@@ -64,31 +64,39 @@ class PlaybackViewModelSkipTest {
     }
 
     private fun createViewModel(fileId: Long = 1L): PlaybackViewModel {
-        val audioFileRepository = mockk<AudioFileRepository>(relaxed = true) {
-            coEvery { getById(any()) } returns null
-        }
-        val waveformRepository = mockk<WaveformRepository>(relaxed = true) {
-            every { getWaveform(any(), any()) } returns flowOf()
-        }
-        val bookmarkRepository = mockk<BookmarkRepository>(relaxed = true) {
-            every { getBookmarksForFile(any()) } returns flowOf(emptyList())
-        }
-        val loopRepository = mockk<LoopRepository>(relaxed = true) {
-            every { getLoopsForFile(any()) } returns flowOf(emptyList())
-        }
-        val chunkMarkerRepository = mockk<ChunkMarkerRepository>(relaxed = true) {
-            every { getMarkersForFile(any()) } returns flowOf(emptyList())
-        }
-        val practiceSettingsRepository = mockk<PracticeSettingsRepository>(relaxed = true) {
-            coEvery { getForFile(any()) } returns PracticeSettings()
-        }
-        val practiceEngine = mockk<ChunkedPracticeEngine>(relaxed = true) {
-            every { state } returns MutableStateFlow(PracticeState.Idle)
-        }
-        val userPreferencesRepository = mockk<UserPreferencesRepository>(relaxed = true) {
-            every { skipIncrementMs } returns MutableStateFlow(5000L)
-            every { waveformOverlay } returns MutableStateFlow(OverlayMode.NONE)
-        }
+        val audioFileRepository =
+            mockk<AudioFileRepository>(relaxed = true) {
+                coEvery { getById(any()) } returns null
+            }
+        val waveformRepository =
+            mockk<WaveformRepository>(relaxed = true) {
+                every { getWaveform(any(), any()) } returns flowOf()
+            }
+        val bookmarkRepository =
+            mockk<BookmarkRepository>(relaxed = true) {
+                every { getBookmarksForFile(any()) } returns flowOf(emptyList())
+            }
+        val loopRepository =
+            mockk<LoopRepository>(relaxed = true) {
+                every { getLoopsForFile(any()) } returns flowOf(emptyList())
+            }
+        val chunkMarkerRepository =
+            mockk<ChunkMarkerRepository>(relaxed = true) {
+                every { getMarkersForFile(any()) } returns flowOf(emptyList())
+            }
+        val practiceSettingsRepository =
+            mockk<PracticeSettingsRepository>(relaxed = true) {
+                coEvery { getForFile(any()) } returns PracticeSettings()
+            }
+        val practiceEngine =
+            mockk<ChunkedPracticeEngine>(relaxed = true) {
+                every { state } returns MutableStateFlow(PracticeState.Idle)
+            }
+        val userPreferencesRepository =
+            mockk<UserPreferencesRepository>(relaxed = true) {
+                every { skipIncrementMs } returns MutableStateFlow(5000L)
+                every { waveformOverlay } returns MutableStateFlow(OverlayMode.NONE)
+            }
 
         return PlaybackViewModel(
             savedStateHandle = SavedStateHandle(mapOf("audioFileId" to fileId)),
@@ -118,26 +126,28 @@ class PlaybackViewModelSkipTest {
         }
 
     @Test
-    fun `navigationEvent does not emit when currentFileId stays on the same file`() = runTest {
-        val viewModel = createViewModel(fileId = 1L)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.navigationEvent.test {
-            currentFileIdFlow.value = 1L
+    fun `navigationEvent does not emit when currentFileId stays on the same file`() =
+        runTest {
+            val viewModel = createViewModel(fileId = 1L)
             testDispatcher.scheduler.advanceUntilIdle()
-            expectNoEvents()
+
+            viewModel.navigationEvent.test {
+                currentFileIdFlow.value = 1L
+                testDispatcher.scheduler.advanceUntilIdle()
+                expectNoEvents()
+            }
         }
-    }
 
     @Test
-    fun `navigationEvent does not emit when currentFileId becomes null`() = runTest {
-        val viewModel = createViewModel(fileId = 1L)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.navigationEvent.test {
-            currentFileIdFlow.value = null
+    fun `navigationEvent does not emit when currentFileId becomes null`() =
+        runTest {
+            val viewModel = createViewModel(fileId = 1L)
             testDispatcher.scheduler.advanceUntilIdle()
-            expectNoEvents()
+
+            viewModel.navigationEvent.test {
+                currentFileIdFlow.value = null
+                testDispatcher.scheduler.advanceUntilIdle()
+                expectNoEvents()
+            }
         }
-    }
 }

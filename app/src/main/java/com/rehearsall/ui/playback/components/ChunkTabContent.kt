@@ -52,13 +52,16 @@ fun ChunkTabContent(
         Column(modifier = Modifier.fillMaxSize()) {
             if (markers.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "No chunk markers yet.\nTap + to add one at the current position.\nMarkers divide the track into chunks for practice.",
+                        text =
+                            "No chunk markers yet.\nTap + to add one at the current position.\n" +
+                                "Markers divide the track into chunks for practice.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(24.dp),
@@ -66,9 +69,10 @@ fun ChunkTabContent(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     itemsIndexed(markers, key = { _, m -> m.id }) { index, marker ->
@@ -87,9 +91,10 @@ fun ChunkTabContent(
                 // Start Practice button
                 FilledTonalButton(
                     onClick = onStartPractice,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                     Text("Start Practice")
@@ -99,10 +104,11 @@ fun ChunkTabContent(
 
         FloatingActionButton(
             onClick = onAddMarker,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .padding(bottom = if (markers.isNotEmpty()) 56.dp else 0.dp),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .padding(bottom = if (markers.isNotEmpty()) 56.dp else 0.dp),
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add chunk marker")
         }
@@ -131,10 +137,11 @@ private fun ChunkMarkerRow(
     onDelete: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onTap)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onTap)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

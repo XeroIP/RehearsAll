@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -53,9 +53,10 @@ fun FileDetailsBottomSheet(
         sheetState = sheetState,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
             Text(
                 text = audioFile.displayName,
@@ -99,9 +100,10 @@ fun FileDetailsBottomSheet(
 
                 TextButton(
                     onClick = onDelete,
-                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
+                    colors =
+                        androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null)
                     Text("Delete", modifier = Modifier.padding(start = 8.dp))
@@ -136,11 +138,15 @@ fun FileDetailsBottomSheet(
 }
 
 @Composable
-private fun DetailRow(label: String, value: String) {
+private fun DetailRow(
+    label: String,
+    value: String,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
@@ -207,10 +213,11 @@ private fun PlaylistPickerDialog(
                 Column {
                     playlists.forEach { playlist ->
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelect(playlist.id) }
-                                .padding(vertical = 12.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(playlist.id) }
+                                    .padding(vertical = 12.dp),
                         ) {
                             Text(
                                 text = playlist.name,

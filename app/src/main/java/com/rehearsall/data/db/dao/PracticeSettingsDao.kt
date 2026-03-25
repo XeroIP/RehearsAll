@@ -8,7 +8,6 @@ import com.rehearsall.data.db.entity.PracticeSettingsEntity
 
 @Dao
 interface PracticeSettingsDao {
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(settings: PracticeSettingsEntity)
 

@@ -12,8 +12,10 @@ import com.rehearsall.data.db.entity.PlaylistEntity
  * Browsable items let the user navigate deeper; playable items start playback.
  */
 object MediaItemMapper {
-
-    fun browsableFolder(mediaId: String, title: String): MediaItem {
+    fun browsableFolder(
+        mediaId: String,
+        title: String,
+    ): MediaItem {
         return MediaItem.Builder()
             .setMediaId(mediaId)
             .setMediaMetadata(
@@ -22,7 +24,7 @@ object MediaItemMapper {
                     .setIsBrowsable(true)
                     .setIsPlayable(false)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
-                    .build()
+                    .build(),
             )
             .build()
     }
@@ -38,11 +40,13 @@ object MediaItemMapper {
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
-                    .setExtras(Bundle().apply {
-                        putLong("fileId", file.id)
-                        putLong("durationMs", file.durationMs)
-                    })
-                    .build()
+                    .setExtras(
+                        Bundle().apply {
+                            putLong("fileId", file.id)
+                            putLong("durationMs", file.durationMs)
+                        },
+                    )
+                    .build(),
             )
             .build()
     }
@@ -57,10 +61,12 @@ object MediaItemMapper {
                     .setIsBrowsable(true)
                     .setIsPlayable(false)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
-                    .setExtras(Bundle().apply {
-                        putLong("fileId", file.id)
-                    })
-                    .build()
+                    .setExtras(
+                        Bundle().apply {
+                            putLong("fileId", file.id)
+                        },
+                    )
+                    .build(),
             )
             .build()
     }
@@ -76,15 +82,20 @@ object MediaItemMapper {
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
-                    .setExtras(Bundle().apply {
-                        putLong("fileId", file.id)
-                    })
-                    .build()
+                    .setExtras(
+                        Bundle().apply {
+                            putLong("fileId", file.id)
+                        },
+                    )
+                    .build(),
             )
             .build()
     }
 
-    fun loopItem(file: AudioFileEntity, loop: LoopEntity): MediaItem {
+    fun loopItem(
+        file: AudioFileEntity,
+        loop: LoopEntity,
+    ): MediaItem {
         val durationSec = (loop.endMs - loop.startMs) / 1000
         return MediaItem.Builder()
             .setMediaId("file:${file.id}:loop:${loop.id}")
@@ -96,13 +107,15 @@ object MediaItemMapper {
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
-                    .setExtras(Bundle().apply {
-                        putLong("fileId", file.id)
-                        putLong("loopId", loop.id)
-                        putLong("loopStartMs", loop.startMs)
-                        putLong("loopEndMs", loop.endMs)
-                    })
-                    .build()
+                    .setExtras(
+                        Bundle().apply {
+                            putLong("fileId", file.id)
+                            putLong("loopId", loop.id)
+                            putLong("loopStartMs", loop.startMs)
+                            putLong("loopEndMs", loop.endMs)
+                        },
+                    )
+                    .build(),
             )
             .build()
     }
@@ -116,14 +129,17 @@ object MediaItemMapper {
                     .setIsBrowsable(true)
                     .setIsPlayable(false)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
-                    .build()
+                    .build(),
             )
             .build()
     }
 
-    fun playlistTrackItem(file: AudioFileEntity, playlistId: Long): MediaItem {
+    fun playlistTrackItem(
+        file: AudioFileEntity,
+        playlistId: Long,
+    ): MediaItem {
         return MediaItem.Builder()
-            .setMediaId("playlist:${playlistId}:file:${file.id}")
+            .setMediaId("playlist:$playlistId:file:${file.id}")
             .setUri(file.internalPath)
             .setMediaMetadata(
                 MediaMetadata.Builder()
@@ -132,10 +148,12 @@ object MediaItemMapper {
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
-                    .setExtras(Bundle().apply {
-                        putLong("fileId", file.id)
-                    })
-                    .build()
+                    .setExtras(
+                        Bundle().apply {
+                            putLong("fileId", file.id)
+                        },
+                    )
+                    .build(),
             )
             .build()
     }

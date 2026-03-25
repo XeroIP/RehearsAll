@@ -87,7 +87,7 @@ fun WaveformView(
             val cursorInView = positionFraction - s
             if (cursorInView > vw * 0.8f || cursorInView < vw * 0.1f) {
                 onScrollOffsetChange(
-                    (positionFraction - vw * 0.3f).coerceIn(0f, 1f - vw)
+                    (positionFraction - vw * 0.3f).coerceIn(0f, 1f - vw),
                 )
             }
         }
@@ -97,123 +97,128 @@ fun WaveformView(
     val bottomOverhangDp = if (showPositionHandle) 16.dp else 0.dp
 
     Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height + topOverhangDp + bottomOverhangDp)
-            .pointerInput(amplitudes) {
-                // Pinch-to-zoom in its own block so two-finger gestures don't conflict
-                detectTransformGestures { _, _, gestureZoom, _ ->
-                    val z = currentZoom
-                    val s = currentScroll
-                    val newZoom = (z * gestureZoom).coerceIn(1f, 50f)
-                    val viewportCenter = s + (1f / z) / 2f
-                    val newVW = 1f / newZoom
-                    val newScroll = (viewportCenter - newVW / 2f)
-                        .coerceIn(0f, (1f - newVW).coerceAtLeast(0f))
-                    onZoomChange(newZoom)
-                    onScrollOffsetChange(newScroll)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height + topOverhangDp + bottomOverhangDp)
+                .pointerInput(amplitudes) {
+                    // Pinch-to-zoom in its own block so two-finger gestures don't conflict
+                    detectTransformGestures { _, _, gestureZoom, _ ->
+                        val z = currentZoom
+                        val s = currentScroll
+                        val newZoom = (z * gestureZoom).coerceIn(1f, 50f)
+                        val viewportCenter = s + (1f / z) / 2f
+                        val newVW = 1f / newZoom
+                        val newScroll =
+                            (viewportCenter - newVW / 2f)
+                                .coerceIn(0f, (1f - newVW).coerceAtLeast(0f))
+                        onZoomChange(newZoom)
+                        onScrollOffsetChange(newScroll)
+                    }
                 }
-            }
-            .pointerInput(amplitudes, editable, showPositionHandle) {
-                // Single-finger: tap-to-seek, loop boundary drag, position handle drag, or scroll
-                val handleHitPx = 56f
-                val boundarySlop = 2f   // Very low for smooth handle scrubbing
-                val generalSlop = 10f
+                .pointerInput(amplitudes, editable, showPositionHandle) {
+                    // Single-finger: tap-to-seek, loop boundary drag, position handle drag, or scroll
+                    val handleHitPx = 56f
+                    val boundarySlop = 2f // Very low for smooth handle scrubbing
+                    val generalSlop = 10f
 
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    val downX = down.position.x
-                    val downY = down.position.y
-                    val canvasW = size.width.toFloat()
-                    val canvasH = size.height.toFloat()
-                    val z = currentZoom
-                    val s = currentScroll
-                    val vw = 1f / z
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val downX = down.position.x
+                        val downY = down.position.y
+                        val canvasW = size.width.toFloat()
+                        val canvasH = size.height.toFloat()
+                        val z = currentZoom
+                        val s = currentScroll
+                        val vw = 1f / z
 
-                    // Check proximity to loop boundary handles (editable only)
-                    var nearBoundary: Boolean? = null
-                    val ls = currentLoopStart
-                    val le = currentLoopEnd
-                    if (editable && ls != null && le != null && onLoopBoundaryDrag != null) {
-                        val startX = ((ls - s) / vw) * canvasW
-                        val endX = ((le - s) / vw) * canvasW
-                        val distStart = abs(downX - startX)
-                        val distEnd = abs(downX - endX)
-                        if (distStart < handleHitPx || distEnd < handleHitPx) {
-                            nearBoundary = distStart <= distEnd
-                        }
-                    }
-
-                    // Check proximity to position scrub handle
-                    var nearPosition = false
-                    if (showPositionHandle) {
-                        val posX = ((currentPosition - s) / vw) * canvasW
-                        if (abs(downX - posX) < handleHitPx) {
-                            nearPosition = true
-                        }
-                    }
-
-                    // Disambiguate: if both nearby, use Y (top = boundary, bottom = position)
-                    if (nearBoundary != null && nearPosition) {
-                        if (downY > canvasH * 0.5f) {
-                            nearBoundary = null
-                        } else {
-                            nearPosition = false
-                        }
-                    }
-
-                    val slop = if (nearBoundary != null || nearPosition) boundarySlop else generalSlop
-                    var dragged = false
-                    var action: String? = null
-
-                    drag(down.id) { change ->
-                        if (!dragged && abs(change.position.x - downX) > slop) {
-                            dragged = true
-                            action = when {
-                                nearBoundary != null -> "boundary"
-                                nearPosition -> "position"
-                                else -> "scroll"
+                        // Check proximity to loop boundary handles (editable only)
+                        var nearBoundary: Boolean? = null
+                        val ls = currentLoopStart
+                        val le = currentLoopEnd
+                        if (editable && ls != null && le != null && onLoopBoundaryDrag != null) {
+                            val startX = ((ls - s) / vw) * canvasW
+                            val endX = ((le - s) / vw) * canvasW
+                            val distStart = abs(downX - startX)
+                            val distEnd = abs(downX - endX)
+                            if (distStart < handleHitPx || distEnd < handleHitPx) {
+                                nearBoundary = distStart <= distEnd
                             }
                         }
-                        if (dragged) {
-                            change.consume()
-                            val cz = currentZoom
-                            val cs = currentScroll
-                            when (action) {
-                                "boundary" -> {
-                                    val f = tapToFraction(change.position.x, canvasW, cz, cs)
-                                        .coerceIn(0f, 1f)
-                                    onLoopBoundaryDrag?.invoke(nearBoundary!!, f)
-                                }
-                                "position" -> {
-                                    val f = tapToFraction(change.position.x, canvasW, cz, cs)
-                                        .coerceIn(0f, 1f)
-                                    onSeek(f)
-                                }
-                                "scroll" -> {
-                                    if (cz > 1f) {
-                                        val dx = change.positionChange().x
-                                        val cvw = 1f / cz
-                                        val delta = -dx / canvasW * cvw
-                                        onScrollOffsetChange(
-                                            (cs + delta).coerceIn(
-                                                0f,
-                                                (1f - cvw).coerceAtLeast(0f),
+
+                        // Check proximity to position scrub handle
+                        var nearPosition = false
+                        if (showPositionHandle) {
+                            val posX = ((currentPosition - s) / vw) * canvasW
+                            if (abs(downX - posX) < handleHitPx) {
+                                nearPosition = true
+                            }
+                        }
+
+                        // Disambiguate: if both nearby, use Y (top = boundary, bottom = position)
+                        if (nearBoundary != null && nearPosition) {
+                            if (downY > canvasH * 0.5f) {
+                                nearBoundary = null
+                            } else {
+                                nearPosition = false
+                            }
+                        }
+
+                        val slop = if (nearBoundary != null || nearPosition) boundarySlop else generalSlop
+                        var dragged = false
+                        var action: String? = null
+
+                        drag(down.id) { change ->
+                            if (!dragged && abs(change.position.x - downX) > slop) {
+                                dragged = true
+                                action =
+                                    when {
+                                        nearBoundary != null -> "boundary"
+                                        nearPosition -> "position"
+                                        else -> "scroll"
+                                    }
+                            }
+                            if (dragged) {
+                                change.consume()
+                                val cz = currentZoom
+                                val cs = currentScroll
+                                when (action) {
+                                    "boundary" -> {
+                                        val f =
+                                            tapToFraction(change.position.x, canvasW, cz, cs)
+                                                .coerceIn(0f, 1f)
+                                        onLoopBoundaryDrag?.invoke(nearBoundary!!, f)
+                                    }
+                                    "position" -> {
+                                        val f =
+                                            tapToFraction(change.position.x, canvasW, cz, cs)
+                                                .coerceIn(0f, 1f)
+                                        onSeek(f)
+                                    }
+                                    "scroll" -> {
+                                        if (cz > 1f) {
+                                            val dx = change.positionChange().x
+                                            val cvw = 1f / cz
+                                            val delta = -dx / canvasW * cvw
+                                            onScrollOffsetChange(
+                                                (cs + delta).coerceIn(
+                                                    0f,
+                                                    (1f - cvw).coerceAtLeast(0f),
+                                                ),
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    if (!dragged) {
-                        val cz = currentZoom
-                        val cs = currentScroll
-                        onSeek(tapToFraction(downX, canvasW, cz, cs).coerceIn(0f, 1f))
+                        if (!dragged) {
+                            val cz = currentZoom
+                            val cs = currentScroll
+                            onSeek(tapToFraction(downX, canvasW, cz, cs).coerceIn(0f, 1f))
+                        }
                     }
-                }
-            },
+                },
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -332,10 +337,12 @@ fun WaveformView(
 
         // Loop region
         if (loopStartFraction != null && loopEndFraction != null && loopEndFraction > loopStartFraction) {
-            val loopLX = ((loopStartFraction - startFrac) / viewportWidth * canvasWidth)
-                .coerceIn(0f, canvasWidth)
-            val loopRX = ((loopEndFraction - startFrac) / viewportWidth * canvasWidth)
-                .coerceIn(0f, canvasWidth)
+            val loopLX =
+                ((loopStartFraction - startFrac) / viewportWidth * canvasWidth)
+                    .coerceIn(0f, canvasWidth)
+            val loopRX =
+                ((loopEndFraction - startFrac) / viewportWidth * canvasWidth)
+                    .coerceIn(0f, canvasWidth)
 
             if (editable) {
                 // Semi-transparent overlay between A and B

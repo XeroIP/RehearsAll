@@ -101,15 +101,18 @@ fun MarkersBottomSheet(
                 val duration = durationMs.coerceAtLeast(1L)
                 val positionFraction = positionMs.toFloat() / duration.toFloat()
 
-                val loopStartFrac = activeLoop?.let {
-                    if (it.endMs > it.startMs) it.startMs.toFloat() / duration else null
-                }
-                val loopEndFrac = activeLoop?.let {
-                    if (it.endMs > it.startMs) it.endMs.toFloat() / duration else null
-                }
-                val chunkFractions = chunkMarkers.map {
-                    it.positionMs.toFloat() / duration
-                }
+                val loopStartFrac =
+                    activeLoop?.let {
+                        if (it.endMs > it.startMs) it.startMs.toFloat() / duration else null
+                    }
+                val loopEndFrac =
+                    activeLoop?.let {
+                        if (it.endMs > it.startMs) it.endMs.toFloat() / duration else null
+                    }
+                val chunkFractions =
+                    chunkMarkers.map {
+                        it.positionMs.toFloat() / duration
+                    }
                 val practiceStep = (practiceState as? PracticeState.Playing)?.currentStep
                 val activeChunkStart = practiceStep?.let { it.startMs.toFloat() / duration }
                 val activeChunkEnd = practiceStep?.let { it.endMs.toFloat() / duration }
@@ -124,9 +127,10 @@ fun MarkersBottomSheet(
                     onSeek = { fraction ->
                         onSeek((fraction * duration).toLong())
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                     height = 160.dp,
                     zoom = wfZoom,
                     scrollOffset = wfScroll,
@@ -146,9 +150,10 @@ fun MarkersBottomSheet(
 
                 // Play/pause and zoom controls
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -222,37 +227,40 @@ fun MarkersBottomSheet(
                 modifier = Modifier.weight(1f),
             ) { page ->
                 when (page) {
-                    0 -> LoopTabContent(
-                        activeLoop = activeLoop,
-                        savedLoops = savedLoops,
-                        onCreateLoop = onCreateLoop,
-                        onClearLoop = onClearLoop,
-                        onSaveLoop = onSaveLoop,
-                        onLoadLoop = onLoadLoop,
-                        onDeleteLoop = onDeleteLoop,
-                        onUpdateLoopBounds = onUpdateLoopBounds,
-                        onAdjustBoundary = onAdjustLoopBoundary,
-                        onSeekTo = onSeek,
-                        durationMs = durationMs,
-                    )
-                    1 -> ChunkTabContent(
-                        markers = chunkMarkers,
-                        onSeekTo = onSeekToChunk,
-                        onAddMarker = onAddChunkMarker,
-                        onUpdatePosition = onUpdateChunkMarkerPosition,
-                        onDeleteMarker = onDeleteChunkMarker,
-                        onStartPractice = onStartPractice,
-                        durationMs = durationMs,
-                    )
-                    2 -> BookmarkTabContent(
-                        bookmarks = bookmarks,
-                        onSeekTo = onSeekToBookmark,
-                        onAdd = onAddBookmark,
-                        onRename = onRenameBookmark,
-                        onUpdatePosition = onUpdateBookmarkPosition,
-                        onDelete = onDeleteBookmark,
-                        durationMs = durationMs,
-                    )
+                    0 ->
+                        LoopTabContent(
+                            activeLoop = activeLoop,
+                            savedLoops = savedLoops,
+                            onCreateLoop = onCreateLoop,
+                            onClearLoop = onClearLoop,
+                            onSaveLoop = onSaveLoop,
+                            onLoadLoop = onLoadLoop,
+                            onDeleteLoop = onDeleteLoop,
+                            onUpdateLoopBounds = onUpdateLoopBounds,
+                            onAdjustBoundary = onAdjustLoopBoundary,
+                            onSeekTo = onSeek,
+                            durationMs = durationMs,
+                        )
+                    1 ->
+                        ChunkTabContent(
+                            markers = chunkMarkers,
+                            onSeekTo = onSeekToChunk,
+                            onAddMarker = onAddChunkMarker,
+                            onUpdatePosition = onUpdateChunkMarkerPosition,
+                            onDeleteMarker = onDeleteChunkMarker,
+                            onStartPractice = onStartPractice,
+                            durationMs = durationMs,
+                        )
+                    2 ->
+                        BookmarkTabContent(
+                            bookmarks = bookmarks,
+                            onSeekTo = onSeekToBookmark,
+                            onAdd = onAddBookmark,
+                            onRename = onRenameBookmark,
+                            onUpdatePosition = onUpdateBookmarkPosition,
+                            onDelete = onDeleteBookmark,
+                            durationMs = durationMs,
+                        )
                 }
             }
         }

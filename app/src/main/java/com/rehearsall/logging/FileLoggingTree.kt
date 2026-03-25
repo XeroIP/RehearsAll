@@ -17,7 +17,6 @@ import java.util.Locale
  * when the file exceeds 5MB, it's truncated to the most recent half.
  */
 class FileLoggingTree(filesDir: File) : Timber.Tree() {
-
     private val logFile: File
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
     private val maxFileSize = 5L * 1024 * 1024 // 5MB
@@ -28,22 +27,31 @@ class FileLoggingTree(filesDir: File) : Timber.Tree() {
         logFile = File(logDir, "rehearsall.log")
     }
 
-    override fun isLoggable(tag: String?, priority: Int): Boolean {
+    override fun isLoggable(
+        tag: String?,
+        priority: Int,
+    ): Boolean {
         // Only log warnings and above in release builds
         return priority >= Log.WARN
     }
 
-    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+    override fun log(
+        priority: Int,
+        tag: String?,
+        message: String,
+        t: Throwable?,
+    ) {
         try {
             rotateIfNeeded()
 
             val timestamp = dateFormat.format(Date())
-            val level = when (priority) {
-                Log.WARN -> "W"
-                Log.ERROR -> "E"
-                Log.ASSERT -> "A"
-                else -> "I"
-            }
+            val level =
+                when (priority) {
+                    Log.WARN -> "W"
+                    Log.ERROR -> "E"
+                    Log.ASSERT -> "A"
+                    else -> "I"
+                }
 
             FileWriter(logFile, true).use { writer ->
                 writer.appendLine("$timestamp $level/$tag: $message")
