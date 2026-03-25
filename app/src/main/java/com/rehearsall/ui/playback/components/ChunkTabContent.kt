@@ -59,7 +59,9 @@ fun ChunkTabContent(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "No chunk markers yet.\nTap + to add one at the current position.\nMarkers divide the track into chunks for practice.",
+                        text =
+                            "No chunk markers yet.\nTap + to add one at the current position.\n" +
+                                "Markers divide the track into chunks for practice.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(24.dp),

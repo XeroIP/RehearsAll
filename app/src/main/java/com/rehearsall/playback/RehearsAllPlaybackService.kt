@@ -96,7 +96,8 @@ class RehearsAllPlaybackService : MediaLibraryService() {
 
         val exoPlayer =
             ExoPlayer.Builder(this)
-                .setAudioAttributes(audioAttributes, /* handleAudioFocus= */ true)
+                // handleAudioFocus = true
+                .setAudioAttributes(audioAttributes, true)
                 .setHandleAudioBecomingNoisy(true)
                 .build()
 
