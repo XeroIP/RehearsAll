@@ -37,6 +37,9 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
+      - name: Kotlin formatting check
+        run: ./gradlew ktlintCheck
+
       - name: Lint
         run: ./gradlew lintDebug
 
