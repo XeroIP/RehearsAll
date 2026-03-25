@@ -1,13 +1,12 @@
 package com.rehearsall
 
 import android.app.Application
+import com.rehearsall.logging.FileLoggingTree
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
-import com.rehearsall.logging.FileLoggingTree
 
 @HiltAndroidApp
 class RehearsAllApp : Application() {
-
     override fun onCreate() {
         super.onCreate()
 

@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class WaveformViewTest {
-
     private val tolerance = 0.001f
 
     @Test

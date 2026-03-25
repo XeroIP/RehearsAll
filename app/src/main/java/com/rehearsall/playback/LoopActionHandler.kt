@@ -1,8 +1,6 @@
 package com.rehearsall.playback
 
-import android.os.Bundle
 import androidx.media3.common.MediaItem
-import androidx.media3.session.SessionCommand
 import com.rehearsall.data.db.dao.LoopDao
 import timber.log.Timber
 
@@ -59,6 +57,8 @@ class LoopActionHandler(
 
         return if (startMs >= 0 && endMs > startMs) {
             LoopRegion(startMs, endMs)
-        } else null
+        } else {
+            null
+        }
     }
 }

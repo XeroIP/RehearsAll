@@ -22,51 +22,53 @@ data class MiniPlayerState(
 )
 
 @HiltViewModel
-class MiniPlayerViewModel @Inject constructor(
-    private val playbackManager: PlaybackManager,
-    private val repository: AudioFileRepository,
-) : ViewModel() {
+class MiniPlayerViewModel
+    @Inject
+    constructor(
+        private val playbackManager: PlaybackManager,
+        private val repository: AudioFileRepository,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(MiniPlayerState())
+        val state: StateFlow<MiniPlayerState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(MiniPlayerState())
-    val state: StateFlow<MiniPlayerState> = _state.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            combine(
-                playbackManager.currentFileId,
-                playbackManager.playbackState,
-            ) { fileId, playback ->
-                Pair(fileId, playback)
-            }.collect { (fileId, playback) ->
-                if (fileId != null) {
-                    // Only look up the name if the file changed
-                    val name = if (fileId != _state.value.currentFileId) {
-                        repository.getById(fileId)?.displayName ?: "Unknown"
+        init {
+            viewModelScope.launch {
+                combine(
+                    playbackManager.currentFileId,
+                    playbackManager.playbackState,
+                ) { fileId, playback ->
+                    Pair(fileId, playback)
+                }.collect { (fileId, playback) ->
+                    if (fileId != null) {
+                        // Only look up the name if the file changed
+                        val name =
+                            if (fileId != _state.value.currentFileId) {
+                                repository.getById(fileId)?.displayName ?: "Unknown"
+                            } else {
+                                _state.value.trackName
+                            }
+                        _state.update {
+                            it.copy(
+                                isVisible = true,
+                                trackName = name,
+                                currentFileId = fileId,
+                                playbackState = playback,
+                            )
+                        }
                     } else {
-                        _state.value.trackName
-                    }
-                    _state.update {
-                        it.copy(
-                            isVisible = true,
-                            trackName = name,
-                            currentFileId = fileId,
-                            playbackState = playback,
-                        )
-                    }
-                } else {
-                    _state.update {
-                        it.copy(isVisible = false, currentFileId = null)
+                        _state.update {
+                            it.copy(isVisible = false, currentFileId = null)
+                        }
                     }
                 }
             }
         }
-    }
 
-    fun togglePlayPause() {
-        if (_state.value.playbackState.isPlaying) {
-            playbackManager.pause()
-        } else {
-            playbackManager.play()
+        fun togglePlayPause() {
+            if (_state.value.playbackState.isPlaying) {
+                playbackManager.pause()
+            } else {
+                playbackManager.play()
+            }
         }
     }
-}

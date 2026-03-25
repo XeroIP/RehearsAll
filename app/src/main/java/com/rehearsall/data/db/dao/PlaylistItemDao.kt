@@ -3,13 +3,11 @@ package com.rehearsall.data.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import com.rehearsall.data.db.entity.AudioFileEntity
 import com.rehearsall.data.db.entity.PlaylistItemEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlaylistItemDao {
-
     @Insert
     suspend fun insert(entity: PlaylistItemEntity): Long
 
@@ -20,7 +18,7 @@ interface PlaylistItemDao {
         "SELECT pi.*, af.* FROM playlist_items pi " +
             "INNER JOIN audio_files af ON pi.audioFileId = af.id " +
             "WHERE pi.playlistId = :playlistId " +
-            "ORDER BY pi.orderIndex ASC"
+            "ORDER BY pi.orderIndex ASC",
     )
     fun getItemsWithFiles(playlistId: Long): Flow<List<PlaylistItemWithFile>>
 
@@ -37,7 +35,10 @@ interface PlaylistItemDao {
     suspend fun deleteAllForPlaylist(playlistId: Long)
 
     @Query("UPDATE playlist_items SET orderIndex = :orderIndex WHERE id = :id")
-    suspend fun updateOrder(id: Long, orderIndex: Int)
+    suspend fun updateOrder(
+        id: Long,
+        orderIndex: Int,
+    )
 
     @Query("SELECT COUNT(*) FROM playlist_items WHERE playlistId = :playlistId")
     suspend fun getItemCount(playlistId: Long): Int
@@ -45,7 +46,7 @@ interface PlaylistItemDao {
     @Query(
         "SELECT COALESCE(SUM(af.durationMs), 0) FROM playlist_items pi " +
             "INNER JOIN audio_files af ON pi.audioFileId = af.id " +
-            "WHERE pi.playlistId = :playlistId"
+            "WHERE pi.playlistId = :playlistId",
     )
     suspend fun getTotalDuration(playlistId: Long): Long
 }

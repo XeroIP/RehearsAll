@@ -8,8 +8,8 @@ import com.rehearsall.data.db.dao.BookmarkDao
 import com.rehearsall.data.db.dao.ChunkMarkerDao
 import com.rehearsall.data.db.dao.LoopDao
 import com.rehearsall.data.db.dao.PlaylistDao
-import com.rehearsall.data.db.dao.PracticeSettingsDao
 import com.rehearsall.data.db.dao.PlaylistItemDao
+import com.rehearsall.data.db.dao.PracticeSettingsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,10 +20,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): RehearsAllDatabase {
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+    ): RehearsAllDatabase {
         return Room.databaseBuilder(
             context,
             RehearsAllDatabase::class.java,

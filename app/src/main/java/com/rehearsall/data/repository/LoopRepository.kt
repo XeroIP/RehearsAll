@@ -13,54 +13,85 @@ import javax.inject.Singleton
 
 interface LoopRepository {
     fun getLoopsForFile(audioFileId: Long): Flow<List<Loop>>
-    suspend fun saveLoop(audioFileId: Long, name: String, startMs: Long, endMs: Long): Long
-    suspend fun renameLoop(id: Long, name: String)
-    suspend fun updateBounds(id: Long, startMs: Long, endMs: Long)
+
+    suspend fun saveLoop(
+        audioFileId: Long,
+        name: String,
+        startMs: Long,
+        endMs: Long,
+    ): Long
+
+    suspend fun renameLoop(
+        id: Long,
+        name: String,
+    )
+
+    suspend fun updateBounds(
+        id: Long,
+        startMs: Long,
+        endMs: Long,
+    )
+
     suspend fun deleteLoop(id: Long)
 }
 
 @Singleton
-class LoopRepositoryImpl @Inject constructor(
-    private val dao: LoopDao,
-) : LoopRepository {
-
-    override fun getLoopsForFile(audioFileId: Long): Flow<List<Loop>> {
-        return dao.getAllForFile(audioFileId).map { entities ->
-            entities.map { it.toDomain() }
+class LoopRepositoryImpl
+    @Inject
+    constructor(
+        private val dao: LoopDao,
+    ) : LoopRepository {
+        override fun getLoopsForFile(audioFileId: Long): Flow<List<Loop>> {
+            return dao.getAllForFile(audioFileId).map { entities ->
+                entities.map { it.toDomain() }
+            }
         }
-    }
 
-    override suspend fun saveLoop(audioFileId: Long, name: String, startMs: Long, endMs: Long): Long =
-        withContext(Dispatchers.IO) {
-            dao.insert(
-                LoopEntity(
-                    audioFileId = audioFileId,
-                    name = name,
-                    startMs = startMs,
-                    endMs = endMs,
-                    createdAt = System.currentTimeMillis(),
+        override suspend fun saveLoop(
+            audioFileId: Long,
+            name: String,
+            startMs: Long,
+            endMs: Long,
+        ): Long =
+            withContext(Dispatchers.IO) {
+                dao.insert(
+                    LoopEntity(
+                        audioFileId = audioFileId,
+                        name = name,
+                        startMs = startMs,
+                        endMs = endMs,
+                        createdAt = System.currentTimeMillis(),
+                    ),
                 )
-            )
+            }
+
+        override suspend fun renameLoop(
+            id: Long,
+            name: String,
+        ) = withContext(Dispatchers.IO) {
+            dao.updateName(id, name)
         }
 
-    override suspend fun renameLoop(id: Long, name: String) = withContext(Dispatchers.IO) {
-        dao.updateName(id, name)
+        override suspend fun updateBounds(
+            id: Long,
+            startMs: Long,
+            endMs: Long,
+        ) = withContext(Dispatchers.IO) {
+            dao.updateRegion(id, startMs, endMs)
+        }
+
+        override suspend fun deleteLoop(id: Long) =
+            withContext(Dispatchers.IO) {
+                dao.delete(id)
+            }
     }
 
-    override suspend fun updateBounds(id: Long, startMs: Long, endMs: Long) = withContext(Dispatchers.IO) {
-        dao.updateRegion(id, startMs, endMs)
-    }
-
-    override suspend fun deleteLoop(id: Long) = withContext(Dispatchers.IO) {
-        dao.delete(id)
-    }
-}
-
-private fun LoopEntity.toDomain(): Loop = Loop(
-    id = id,
-    audioFileId = audioFileId,
-    name = name,
-    startMs = startMs,
-    endMs = endMs,
-    createdAt = Instant.ofEpochMilli(createdAt),
-)
+private fun LoopEntity.toDomain(): Loop =
+    Loop(
+        id = id,
+        audioFileId = audioFileId,
+        name = name,
+        startMs = startMs,
+        endMs = endMs,
+        createdAt = Instant.ofEpochMilli(createdAt),
+    )

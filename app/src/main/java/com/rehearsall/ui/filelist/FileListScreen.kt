@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.CheckCircle
@@ -30,8 +31,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.PlaylistPlay
-import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -87,11 +86,12 @@ fun FileListScreen(
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    val safLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments()
-    ) { uris: List<Uri> ->
-        viewModel.importFiles(uris)
-    }
+    val safLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenMultipleDocuments(),
+        ) { uris: List<Uri> ->
+            viewModel.importFiles(uris)
+        }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -145,9 +145,15 @@ fun FileListScreen(
                 onClick = {
                     safLauncher.launch(
                         arrayOf(
-                            "audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg",
-                            "audio/flac", "audio/mp4", "audio/x-m4a", "audio/aac",
-                        )
+                            "audio/mpeg",
+                            "audio/wav",
+                            "audio/x-wav",
+                            "audio/ogg",
+                            "audio/flac",
+                            "audio/mp4",
+                            "audio/x-m4a",
+                            "audio/aac",
+                        ),
                     )
                 },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -160,9 +166,10 @@ fun FileListScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         ) {
             if (isImporting) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -309,9 +316,10 @@ private fun CombinedList(
         if (playlists.isNotEmpty() || true) { // Always show section for "New Playlist" button
             item(key = "playlists-header") {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -355,33 +363,36 @@ private fun CombinedList(
             items = files,
             key = { "file-${it.id}" },
         ) { file ->
-            val dismissState = rememberSwipeToDismissBoxState(
-                confirmValueChange = { value ->
-                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                        onFileDelete(file.id)
-                        true
-                    } else {
-                        false
-                    }
-                },
-            )
+            val dismissState =
+                rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value == SwipeToDismissBoxValue.EndToStart) {
+                            onFileDelete(file.id)
+                            true
+                        } else {
+                            false
+                        }
+                    },
+                )
 
             SwipeToDismissBox(
                 state = dismissState,
                 backgroundContent = {
                     val color by animateColorAsState(
-                        targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                            MaterialTheme.colorScheme.errorContainer
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
+                        targetValue =
+                            if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                                MaterialTheme.colorScheme.errorContainer
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
                         label = "swipe-bg",
                     )
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(color)
-                            .padding(horizontal = 24.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(color)
+                                .padding(horizontal = 24.dp),
                         contentAlignment = Alignment.CenterEnd,
                     ) {
                         Icon(
@@ -410,15 +421,17 @@ private fun PlaylistCard(
     onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp)
+                .clickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -460,10 +473,11 @@ private fun SelectionBar(
     onAddToPlaylist: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
@@ -503,18 +517,20 @@ private fun AudioFileCard(
     onLongClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                ),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelected) {
@@ -568,7 +584,6 @@ private fun AudioFileCard(
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
-
         }
     }
 }
@@ -589,10 +604,11 @@ private fun PlaylistPickerDialog(
                 LazyColumn {
                     items(items = playlists, key = { it.id }) { playlist ->
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelect(playlist.id) }
-                                .padding(vertical = 12.dp, horizontal = 4.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(playlist.id) }
+                                    .padding(vertical = 12.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(

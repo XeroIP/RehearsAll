@@ -3,15 +3,8 @@ package com.rehearsall.ui.playback
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.rehearsall.data.preferences.UserPreferencesRepository
-import com.rehearsall.data.repository.AudioFileRepository
-import com.rehearsall.data.repository.BookmarkRepository
-import com.rehearsall.data.repository.ChunkMarkerRepository
-import com.rehearsall.data.repository.LoopRepository
-import com.rehearsall.data.repository.PracticeSettingsRepository
-import com.rehearsall.data.repository.WaveformRepository
 import com.rehearsall.domain.model.OverlayMode
 import com.rehearsall.domain.model.PracticeSettings
-import com.rehearsall.playback.ChunkedPracticeEngine
 import com.rehearsall.playback.LoopRegion
 import com.rehearsall.playback.PlaybackManager
 import com.rehearsall.playback.PlaybackState
@@ -45,7 +38,6 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlaybackViewModelWaveformTest {
-
     private val testDispatcher = StandardTestDispatcher()
 
     private val loopRegionFlow = MutableStateFlow<LoopRegion?>(null)
@@ -56,19 +48,21 @@ class PlaybackViewModelWaveformTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
-        playbackManager = mockk(relaxed = true) {
-            every { playbackState } returns MutableStateFlow(PlaybackState.IDLE)
-            every { currentFileId } returns MutableStateFlow(1L)
-            every { repeatMode } returns MutableStateFlow(RepeatMode.OFF)
-            every { shuffleEnabled } returns MutableStateFlow(false)
-            every { currentQueue } returns MutableStateFlow(emptyList())
-            every { loopRegion } returns loopRegionFlow
-        }
+        playbackManager =
+            mockk(relaxed = true) {
+                every { playbackState } returns MutableStateFlow(PlaybackState.IDLE)
+                every { currentFileId } returns MutableStateFlow(1L)
+                every { repeatMode } returns MutableStateFlow(RepeatMode.OFF)
+                every { shuffleEnabled } returns MutableStateFlow(false)
+                every { currentQueue } returns MutableStateFlow(emptyList())
+                every { loopRegion } returns loopRegionFlow
+            }
 
-        userPreferencesRepository = mockk(relaxed = true) {
-            every { skipIncrementMs } returns MutableStateFlow(5000L)
-            every { waveformOverlay } returns MutableStateFlow(OverlayMode.NONE)
-        }
+        userPreferencesRepository =
+            mockk(relaxed = true) {
+                every { skipIncrementMs } returns MutableStateFlow(5000L)
+                every { waveformOverlay } returns MutableStateFlow(OverlayMode.NONE)
+            }
     }
 
     @After
@@ -92,68 +86,73 @@ class PlaybackViewModelWaveformTest {
     }
 
     @Test
-    fun `overlayMode becomes LOOPS when a loop region is set`() = runTest {
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `overlayMode becomes LOOPS when a loop region is set`() =
+        runTest {
+            val viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.uiState.test {
-            awaitItem() // consume initial state
+            viewModel.uiState.test {
+                awaitItem() // consume initial state
+
+                loopRegionFlow.value = LoopRegion(1000L, 5000L)
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val state = awaitItem()
+                assertEquals(OverlayMode.LOOPS, state.overlayMode)
+            }
+        }
+
+    @Test
+    fun `overlayMode reverts to NONE when loop is cleared after being LOOPS`() =
+        runTest {
+            val viewModel = createViewModel()
+            loopRegionFlow.value = LoopRegion(1000L, 5000L)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.uiState.test {
+                awaitItem() // current state (LOOPS)
+
+                loopRegionFlow.value = null
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val state = awaitItem()
+                assertEquals(OverlayMode.NONE, state.overlayMode)
+            }
+        }
+
+    @Test
+    fun `showWaveform is true when overlayMode is LOOPS`() =
+        runTest {
+            val viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
 
             loopRegionFlow.value = LoopRegion(1000L, 5000L)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val state = awaitItem()
-            assertEquals(OverlayMode.LOOPS, state.overlayMode)
+            assertTrue(viewModel.uiState.value.showWaveform)
         }
-    }
 
     @Test
-    fun `overlayMode reverts to NONE when loop is cleared after being LOOPS`() = runTest {
-        val viewModel = createViewModel()
-        loopRegionFlow.value = LoopRegion(1000L, 5000L)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.uiState.test {
-            awaitItem() // current state (LOOPS)
-
-            loopRegionFlow.value = null
+    fun `showWaveform is false when overlayMode is NONE`() =
+        runTest {
+            val viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val state = awaitItem()
-            assertEquals(OverlayMode.NONE, state.overlayMode)
+            assertFalse(viewModel.uiState.value.showWaveform)
         }
-    }
 
     @Test
-    fun `showWaveform is true when overlayMode is LOOPS`() = runTest {
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `dismissWaveform clears the loop and sets overlayMode to NONE`() =
+        runTest {
+            val viewModel = createViewModel()
+            loopRegionFlow.value = LoopRegion(1000L, 5000L)
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        loopRegionFlow.value = LoopRegion(1000L, 5000L)
-        testDispatcher.scheduler.advanceUntilIdle()
+            viewModel.dismissWaveform()
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.showWaveform)
-    }
-
-    @Test
-    fun `showWaveform is false when overlayMode is NONE`() = runTest {
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertFalse(viewModel.uiState.value.showWaveform)
-    }
-
-    @Test
-    fun `dismissWaveform clears the loop and sets overlayMode to NONE`() = runTest {
-        val viewModel = createViewModel()
-        loopRegionFlow.value = LoopRegion(1000L, 5000L)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.dismissWaveform()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        verify { playbackManager.clearLoopRegion() }
-        assertEquals(OverlayMode.NONE, viewModel.uiState.value.overlayMode)
-        assertFalse(viewModel.uiState.value.showWaveform)
-    }
+            verify { playbackManager.clearLoopRegion() }
+            assertEquals(OverlayMode.NONE, viewModel.uiState.value.overlayMode)
+            assertFalse(viewModel.uiState.value.showWaveform)
+        }
 }

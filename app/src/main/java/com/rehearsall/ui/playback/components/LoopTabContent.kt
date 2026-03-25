@@ -27,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -70,21 +69,24 @@ fun LoopTabContent(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
         ) {
             // Active loop editor — distinct card with close button
             if (activeLoop != null && activeLoop.endMs > activeLoop.startMs) {
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        width = 1.dp,
-                    ),
+                    colors =
+                        CardDefaults.outlinedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
+                    border =
+                        CardDefaults.outlinedCardBorder().copy(
+                            width = 1.dp,
+                        ),
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         // Header row with title and close button
@@ -131,10 +133,11 @@ fun LoopTabContent(
                                 TextButton(onClick = { editingBoundary = true }) {
                                     Text(
                                         text = formatDuration(activeLoop.startMs),
-                                        style = MaterialTheme.typography.titleLarge.copy(
-                                            fontWeight = FontWeight.Medium,
-                                            textDecoration = TextDecoration.Underline,
-                                        ),
+                                        style =
+                                            MaterialTheme.typography.titleLarge.copy(
+                                                fontWeight = FontWeight.Medium,
+                                                textDecoration = TextDecoration.Underline,
+                                            ),
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -145,9 +148,10 @@ fun LoopTabContent(
                                             onAdjustBoundary(true, newMs)
                                             onSeekTo(newMs)
                                         },
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        ),
+                                        colors =
+                                            IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            ),
                                     ) {
                                         Icon(Icons.Default.Remove, contentDescription = "−0.25s")
                                     }
@@ -157,9 +161,10 @@ fun LoopTabContent(
                                             onAdjustBoundary(true, newMs)
                                             onSeekTo(newMs)
                                         },
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        ),
+                                        colors =
+                                            IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            ),
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = "+0.25s")
                                     }
@@ -180,10 +185,11 @@ fun LoopTabContent(
                                 TextButton(onClick = { editingBoundary = false }) {
                                     Text(
                                         text = formatDuration(activeLoop.endMs),
-                                        style = MaterialTheme.typography.titleLarge.copy(
-                                            fontWeight = FontWeight.Medium,
-                                            textDecoration = TextDecoration.Underline,
-                                        ),
+                                        style =
+                                            MaterialTheme.typography.titleLarge.copy(
+                                                fontWeight = FontWeight.Medium,
+                                                textDecoration = TextDecoration.Underline,
+                                            ),
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -192,9 +198,10 @@ fun LoopTabContent(
                                         onClick = {
                                             onAdjustBoundary(false, (activeLoop.endMs - 250).coerceAtLeast(activeLoop.startMs + 100))
                                         },
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        ),
+                                        colors =
+                                            IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            ),
                                     ) {
                                         Icon(Icons.Default.Remove, contentDescription = "−0.25s")
                                     }
@@ -202,9 +209,10 @@ fun LoopTabContent(
                                         onClick = {
                                             onAdjustBoundary(false, (activeLoop.endMs + 250).coerceAtMost(durationMs))
                                         },
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        ),
+                                        colors =
+                                            IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            ),
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = "+0.25s")
                                     }
@@ -257,9 +265,10 @@ fun LoopTabContent(
 
             if (savedLoops.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -293,9 +302,10 @@ fun LoopTabContent(
                 editingLoop = null
                 onCreateLoop(0L, durationMs)
             },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
         ) {
             Icon(Icons.Default.Add, contentDescription = "Create loop")
         }
@@ -364,10 +374,11 @@ private fun SavedLoopRow(
     onDelete: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onTap)
-            .padding(horizontal = 0.dp, vertical = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onTap)
+                .padding(horizontal = 0.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {

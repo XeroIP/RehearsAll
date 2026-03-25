@@ -47,25 +47,28 @@ fun MiniPlayer(
         ) {
             Column {
                 // Thin progress bar
-                val progress = if (playbackState.durationMs > 0) {
-                    playbackState.positionMs.toFloat() / playbackState.durationMs.toFloat()
-                } else {
-                    0f
-                }
+                val progress =
+                    if (playbackState.durationMs > 0) {
+                        playbackState.positionMs.toFloat() / playbackState.durationMs.toFloat()
+                    } else {
+                        0f
+                    }
                 LinearProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(2.dp),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onTap)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onTap)
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
@@ -88,11 +91,12 @@ fun MiniPlayer(
                         modifier = Modifier.size(40.dp),
                     ) {
                         Icon(
-                            imageVector = if (playbackState.isPlaying) {
-                                Icons.Default.Pause
-                            } else {
-                                Icons.Default.PlayArrow
-                            },
+                            imageVector =
+                                if (playbackState.isPlaying) {
+                                    Icons.Default.Pause
+                                } else {
+                                    Icons.Default.PlayArrow
+                                },
                             contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
                         )
                     }

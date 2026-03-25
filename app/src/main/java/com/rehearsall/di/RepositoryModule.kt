@@ -8,10 +8,10 @@ import com.rehearsall.data.repository.ChunkMarkerRepository
 import com.rehearsall.data.repository.ChunkMarkerRepositoryImpl
 import com.rehearsall.data.repository.LoopRepository
 import com.rehearsall.data.repository.LoopRepositoryImpl
-import com.rehearsall.data.repository.PracticeSettingsRepository
-import com.rehearsall.data.repository.PracticeSettingsRepositoryImpl
 import com.rehearsall.data.repository.PlaylistRepository
 import com.rehearsall.data.repository.PlaylistRepositoryImpl
+import com.rehearsall.data.repository.PracticeSettingsRepository
+import com.rehearsall.data.repository.PracticeSettingsRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,7 +21,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
-
     @Binds
     @Singleton
     abstract fun bindAudioFileRepository(impl: AudioFileRepositoryImpl): AudioFileRepository

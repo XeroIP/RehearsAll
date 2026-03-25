@@ -23,7 +23,6 @@ class ContentTreeBuilder(
     private val playlistItemDao: PlaylistItemDao,
     private val loopDao: LoopDao,
 ) {
-
     companion object {
         const val ROOT_ID = "root"
         const val RECENT_ID = "recent"

@@ -42,37 +42,38 @@ fun WaveformOverviewBar(
     val currentVpEnd by rememberUpdatedState(viewportEnd)
 
     Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(24.dp)
-            .then(
-                if (onViewportDrag != null) {
-                    Modifier.pointerInput(Unit) {
-                        val vpWidth = { currentVpEnd - currentVpStart }
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            val canvasW = size.width.toFloat()
-                            // Center viewport on tap position
-                            val fraction = (down.position.x / canvasW).coerceIn(0f, 1f)
-                            val halfVp = vpWidth() / 2f
-                            onViewportDrag(
-                                (fraction - halfVp).coerceIn(0f, (1f - vpWidth()).coerceAtLeast(0f))
-                            )
-
-                            drag(down.id) { change ->
-                                change.consume()
-                                val f = (change.position.x / canvasW).coerceIn(0f, 1f)
-                                val hw = vpWidth() / 2f
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .then(
+                    if (onViewportDrag != null) {
+                        Modifier.pointerInput(Unit) {
+                            val vpWidth = { currentVpEnd - currentVpStart }
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val canvasW = size.width.toFloat()
+                                // Center viewport on tap position
+                                val fraction = (down.position.x / canvasW).coerceIn(0f, 1f)
+                                val halfVp = vpWidth() / 2f
                                 onViewportDrag(
-                                    (f - hw).coerceIn(0f, (1f - vpWidth()).coerceAtLeast(0f))
+                                    (fraction - halfVp).coerceIn(0f, (1f - vpWidth()).coerceAtLeast(0f)),
                                 )
+
+                                drag(down.id) { change ->
+                                    change.consume()
+                                    val f = (change.position.x / canvasW).coerceIn(0f, 1f)
+                                    val hw = vpWidth() / 2f
+                                    onViewportDrag(
+                                        (f - hw).coerceIn(0f, (1f - vpWidth()).coerceAtLeast(0f)),
+                                    )
+                                }
                             }
                         }
-                    }
-                } else {
-                    Modifier
-                }
-            ),
+                    } else {
+                        Modifier
+                    },
+                ),
     ) {
         val canvasWidth = size.width
         val canvasHeight = size.height

@@ -23,9 +23,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -138,7 +138,8 @@ fun PlaylistScreen(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Delete, null,
+                                        Icons.Default.Delete,
+                                        null,
                                         tint = MaterialTheme.colorScheme.error,
                                     )
                                 },
@@ -167,9 +168,10 @@ fun PlaylistScreen(
         when (val state = uiState) {
             is PlaylistUiState.Loading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
@@ -192,9 +194,10 @@ fun PlaylistScreen(
 
             is PlaylistUiState.Error -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -282,12 +285,14 @@ private fun PlaylistItemList(
     var localItems by remember(items) { mutableStateOf(items) }
 
     val lazyListState = rememberLazyListState()
-    val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        localItems = localItems.toMutableList().apply {
-            add(to.index, removeAt(from.index))
+    val reorderState =
+        rememberReorderableLazyListState(lazyListState) { from, to ->
+            localItems =
+                localItems.toMutableList().apply {
+                    add(to.index, removeAt(from.index))
+                }
+            onReorder(from.index, to.index)
         }
-        onReorder(from.index, to.index)
-    }
 
     LazyColumn(
         state = lazyListState,
@@ -304,33 +309,36 @@ private fun PlaylistItemList(
                     label = "drag-elevation",
                 )
 
-                val dismissState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart) {
-                            onRemove(item.id)
-                            true
-                        } else {
-                            false
-                        }
-                    },
-                )
+                val dismissState =
+                    rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                onRemove(item.id)
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    )
 
                 SwipeToDismissBox(
                     state = dismissState,
                     backgroundContent = {
                         val color by animateColorAsState(
-                            targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                                MaterialTheme.colorScheme.errorContainer
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            },
+                            targetValue =
+                                if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                                    MaterialTheme.colorScheme.errorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
                             label = "swipe-bg",
                         )
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(color)
-                                .padding(horizontal = 24.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(color)
+                                    .padding(horizontal = 24.dp),
                             contentAlignment = Alignment.CenterEnd,
                         ) {
                             Icon(
@@ -366,11 +374,12 @@ private fun PlaylistTrackRow(
     dragHandleModifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

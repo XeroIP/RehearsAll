@@ -13,72 +13,106 @@ import javax.inject.Singleton
 
 interface AudioFileRepository {
     fun getAllFiles(): Flow<List<AudioFile>>
+
     fun getRecentFiles(limit: Int = 20): Flow<List<AudioFile>>
+
     suspend fun getById(id: Long): AudioFile?
+
     suspend fun insert(entity: AudioFileEntity): Long
+
     suspend fun delete(id: Long)
-    suspend fun updateDisplayName(id: Long, displayName: String)
-    suspend fun updateLastPlayed(id: Long, positionMs: Long)
-    suspend fun updateLastPosition(id: Long, positionMs: Long)
-    suspend fun updateLastSpeed(id: Long, speed: Float)
+
+    suspend fun updateDisplayName(
+        id: Long,
+        displayName: String,
+    )
+
+    suspend fun updateLastPlayed(
+        id: Long,
+        positionMs: Long,
+    )
+
+    suspend fun updateLastPosition(
+        id: Long,
+        positionMs: Long,
+    )
+
+    suspend fun updateLastSpeed(
+        id: Long,
+        speed: Float,
+    )
 }
 
 @Singleton
-class AudioFileRepositoryImpl @Inject constructor(
-    private val dao: AudioFileDao,
-) : AudioFileRepository {
+class AudioFileRepositoryImpl
+    @Inject
+    constructor(
+        private val dao: AudioFileDao,
+    ) : AudioFileRepository {
+        override fun getAllFiles(): Flow<List<AudioFile>> {
+            return dao.getAll().map { entities -> entities.map { it.toDomain() } }
+        }
 
-    override fun getAllFiles(): Flow<List<AudioFile>> {
-        return dao.getAll().map { entities -> entities.map { it.toDomain() } }
-    }
+        override fun getRecentFiles(limit: Int): Flow<List<AudioFile>> {
+            return dao.getRecent(limit).map { entities -> entities.map { it.toDomain() } }
+        }
 
-    override fun getRecentFiles(limit: Int): Flow<List<AudioFile>> {
-        return dao.getRecent(limit).map { entities -> entities.map { it.toDomain() } }
-    }
+        override suspend fun getById(id: Long): AudioFile? =
+            withContext(Dispatchers.IO) {
+                dao.getById(id)?.toDomain()
+            }
 
-    override suspend fun getById(id: Long): AudioFile? = withContext(Dispatchers.IO) {
-        dao.getById(id)?.toDomain()
-    }
+        override suspend fun insert(entity: AudioFileEntity): Long =
+            withContext(Dispatchers.IO) {
+                dao.insert(entity)
+            }
 
-    override suspend fun insert(entity: AudioFileEntity): Long = withContext(Dispatchers.IO) {
-        dao.insert(entity)
-    }
+        override suspend fun delete(id: Long) =
+            withContext(Dispatchers.IO) {
+                dao.delete(id)
+            }
 
-    override suspend fun delete(id: Long) = withContext(Dispatchers.IO) {
-        dao.delete(id)
-    }
-
-    override suspend fun updateDisplayName(id: Long, displayName: String) =
-        withContext(Dispatchers.IO) {
+        override suspend fun updateDisplayName(
+            id: Long,
+            displayName: String,
+        ) = withContext(Dispatchers.IO) {
             dao.updateDisplayName(id, displayName)
         }
 
-    override suspend fun updateLastPlayed(id: Long, positionMs: Long) =
-        withContext(Dispatchers.IO) {
+        override suspend fun updateLastPlayed(
+            id: Long,
+            positionMs: Long,
+        ) = withContext(Dispatchers.IO) {
             dao.updateLastPlayed(id, System.currentTimeMillis(), positionMs)
         }
 
-    override suspend fun updateLastPosition(id: Long, positionMs: Long) =
-        withContext(Dispatchers.IO) {
+        override suspend fun updateLastPosition(
+            id: Long,
+            positionMs: Long,
+        ) = withContext(Dispatchers.IO) {
             dao.updateLastPosition(id, positionMs)
         }
 
-    override suspend fun updateLastSpeed(id: Long, speed: Float) = withContext(Dispatchers.IO) {
-        dao.updateLastSpeed(id, speed)
+        override suspend fun updateLastSpeed(
+            id: Long,
+            speed: Float,
+        ) = withContext(Dispatchers.IO) {
+            dao.updateLastSpeed(id, speed)
+        }
     }
-}
 
-private fun AudioFileEntity.toDomain(): AudioFile = AudioFile(
-    id = id,
-    displayName = displayName,
-    artist = artist,
-    title = title,
-    format = format,
-    durationMs = durationMs,
-    fileSizeBytes = fileSizeBytes,
-    internalPath = internalPath,
-    importedAt = Instant.ofEpochMilli(importedAt),
-    lastPlayedAt = lastPlayedAt?.let { Instant.ofEpochMilli(it) },
-    lastPositionMs = lastPositionMs,
-    lastSpeed = lastSpeed,
-)
+private fun AudioFileEntity.toDomain(): AudioFile =
+    AudioFile(
+        id = id,
+        displayName = displayName,
+        artist = artist,
+        title = title,
+        format = format,
+        durationMs = durationMs,
+        fileSizeBytes = fileSizeBytes,
+        internalPath = internalPath,
+        importedAt = Instant.ofEpochMilli(importedAt),
+        lastPlayedAt = lastPlayedAt?.let { Instant.ofEpochMilli(it) },
+        lastPositionMs = lastPositionMs,
+        lastSpeed = lastSpeed,
+    )

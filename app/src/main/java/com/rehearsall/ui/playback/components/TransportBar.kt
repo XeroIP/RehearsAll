@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,13 +48,14 @@ fun TransportBar(
         // Shuffle
         IconButton(
             onClick = onToggleShuffle,
-            colors = if (shuffleEnabled) {
-                IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                IconButtonDefaults.iconButtonColors()
-            },
+            colors =
+                if (shuffleEnabled) {
+                    IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    IconButtonDefaults.iconButtonColors()
+                },
         ) {
             Icon(
                 imageVector = Icons.Default.Shuffle,
@@ -112,25 +112,28 @@ fun TransportBar(
         // Repeat mode
         IconButton(
             onClick = onCycleRepeat,
-            colors = if (repeatMode != RepeatMode.OFF) {
-                IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                IconButtonDefaults.iconButtonColors()
-            },
+            colors =
+                if (repeatMode != RepeatMode.OFF) {
+                    IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    IconButtonDefaults.iconButtonColors()
+                },
         ) {
             Icon(
-                imageVector = when (repeatMode) {
-                    RepeatMode.OFF -> Icons.Default.Repeat
-                    RepeatMode.ONE -> Icons.Default.RepeatOne
-                    RepeatMode.ALL -> Icons.Default.Repeat
-                },
-                contentDescription = when (repeatMode) {
-                    RepeatMode.OFF -> "Repeat off"
-                    RepeatMode.ONE -> "Repeat one"
-                    RepeatMode.ALL -> "Repeat all"
-                },
+                imageVector =
+                    when (repeatMode) {
+                        RepeatMode.OFF -> Icons.Default.Repeat
+                        RepeatMode.ONE -> Icons.Default.RepeatOne
+                        RepeatMode.ALL -> Icons.Default.Repeat
+                    },
+                contentDescription =
+                    when (repeatMode) {
+                        RepeatMode.OFF -> "Repeat off"
+                        RepeatMode.ONE -> "Repeat one"
+                        RepeatMode.ALL -> "Repeat all"
+                    },
             )
         }
     }

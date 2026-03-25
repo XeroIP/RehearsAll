@@ -33,10 +33,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -70,10 +70,11 @@ fun SettingsScreen(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState()),
         ) {
             // -- Appearance --
             SectionHeader("Appearance")
@@ -121,23 +122,25 @@ private fun ThemeModeSelector(
     selected: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
 ) {
-    val options = listOf(
-        ThemeMode.LIGHT to "Light",
-        ThemeMode.DARK to "Dark",
-        ThemeMode.SYSTEM to "Follow System",
-    )
+    val options =
+        listOf(
+            ThemeMode.LIGHT to "Light",
+            ThemeMode.DARK to "Dark",
+            ThemeMode.SYSTEM to "Follow System",
+        )
     Column(modifier = Modifier.selectableGroup()) {
         options.forEach { (mode, label) ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = selected == mode,
-                        onClick = { onSelect(mode) },
-                        role = Role.RadioButton,
-                    )
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = selected == mode,
+                            onClick = { onSelect(mode) },
+                            role = Role.RadioButton,
+                        )
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 RadioButton(
                     selected = selected == mode,
@@ -170,14 +173,15 @@ private fun SkipIncrementSelector(
             val label = "${ms / 1000} seconds"
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = selectedMs == ms,
-                        onClick = { onSelect(ms) },
-                        role = Role.RadioButton,
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = selectedMs == ms,
+                            onClick = { onSelect(ms) },
+                            role = Role.RadioButton,
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 RadioButton(
                     selected = selectedMs == ms,
@@ -201,11 +205,12 @@ private fun SwitchRow(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .semantics { contentDescription = "$label: ${if (checked) "on" else "off"}" },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onCheckedChange(!checked) }
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .semantics { contentDescription = "$label: ${if (checked) "on" else "off"}" },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -246,17 +251,20 @@ private fun AboutSection() {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Documentation & Wiki",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                textDecoration = TextDecoration.Underline,
-            ),
+            style =
+                MaterialTheme.typography.bodyMedium.copy(
+                    textDecoration = TextDecoration.Underline,
+                ),
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.clickable {
-                val intent = Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://github.com/XeroIP/RehearsAll/wiki"),
-                )
-                context.startActivity(intent)
-            },
+            modifier =
+                Modifier.clickable {
+                    val intent =
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://github.com/XeroIP/RehearsAll/wiki"),
+                        )
+                    context.startActivity(intent)
+                },
         )
     }
     Spacer(modifier = Modifier.height(24.dp))

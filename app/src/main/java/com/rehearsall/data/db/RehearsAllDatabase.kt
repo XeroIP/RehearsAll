@@ -32,10 +32,16 @@ import com.rehearsall.data.db.entity.PracticeSettingsEntity
 )
 abstract class RehearsAllDatabase : RoomDatabase() {
     abstract fun audioFileDao(): AudioFileDao
+
     abstract fun playlistDao(): PlaylistDao
+
     abstract fun playlistItemDao(): PlaylistItemDao
+
     abstract fun bookmarkDao(): BookmarkDao
+
     abstract fun loopDao(): LoopDao
+
     abstract fun chunkMarkerDao(): ChunkMarkerDao
+
     abstract fun practiceSettingsDao(): PracticeSettingsDao
 }

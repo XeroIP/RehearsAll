@@ -17,8 +17,12 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface ServiceEntryPoint {
     fun audioFileDao(): AudioFileDao
+
     fun playlistDao(): PlaylistDao
+
     fun playlistItemDao(): PlaylistItemDao
+
     fun loopDao(): LoopDao
+
     fun userPreferencesRepository(): UserPreferencesRepository
 }

@@ -19,35 +19,37 @@ data class SettingsUiState(
 )
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
-    private val prefsRepo: UserPreferencesRepository,
-) : ViewModel() {
+class SettingsViewModel
+    @Inject
+    constructor(
+        private val prefsRepo: UserPreferencesRepository,
+    ) : ViewModel() {
+        val uiState: StateFlow<SettingsUiState> =
+            combine(
+                prefsRepo.themeMode,
+                prefsRepo.skipIncrementMs,
+                prefsRepo.loopCrossfade,
+            ) { theme, skip, crossfade ->
+                SettingsUiState(
+                    themeMode = theme,
+                    skipIncrementMs = skip,
+                    loopCrossfade = crossfade,
+                )
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = SettingsUiState(),
+            )
 
-    val uiState: StateFlow<SettingsUiState> = combine(
-        prefsRepo.themeMode,
-        prefsRepo.skipIncrementMs,
-        prefsRepo.loopCrossfade,
-    ) { theme, skip, crossfade ->
-        SettingsUiState(
-            themeMode = theme,
-            skipIncrementMs = skip,
-            loopCrossfade = crossfade,
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = SettingsUiState(),
-    )
+        fun setThemeMode(mode: ThemeMode) {
+            viewModelScope.launch { prefsRepo.setThemeMode(mode) }
+        }
 
-    fun setThemeMode(mode: ThemeMode) {
-        viewModelScope.launch { prefsRepo.setThemeMode(mode) }
+        fun setSkipIncrement(ms: Long) {
+            viewModelScope.launch { prefsRepo.setSkipIncrementMs(ms) }
+        }
+
+        fun setLoopCrossfade(enabled: Boolean) {
+            viewModelScope.launch { prefsRepo.setLoopCrossfade(enabled) }
+        }
     }
-
-    fun setSkipIncrement(ms: Long) {
-        viewModelScope.launch { prefsRepo.setSkipIncrementMs(ms) }
-    }
-
-    fun setLoopCrossfade(enabled: Boolean) {
-        viewModelScope.launch { prefsRepo.setLoopCrossfade(enabled) }
-    }
-}
