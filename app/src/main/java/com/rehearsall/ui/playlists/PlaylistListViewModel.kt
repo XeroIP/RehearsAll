@@ -24,6 +24,8 @@ sealed interface PlaylistListUiState {
 
 sealed interface PlaylistListEvent {
     data class PlaylistCreated(val name: String) : PlaylistListEvent
+    data class PlaylistRenamed(val newName: String) : PlaylistListEvent
+    data class PlaylistDeleted(val name: String) : PlaylistListEvent
 }
 
 @HiltViewModel
@@ -55,6 +57,21 @@ class PlaylistListViewModel
             viewModelScope.launch {
                 playlistRepository.createPlaylist(name.trim())
                 _events.emit(PlaylistListEvent.PlaylistCreated(name.trim()))
+            }
+        }
+
+        fun renamePlaylist(id: Long, newName: String) {
+            viewModelScope.launch {
+                playlistRepository.renamePlaylist(id, newName.trim())
+                _events.emit(PlaylistListEvent.PlaylistRenamed(newName.trim()))
+            }
+        }
+
+        fun deletePlaylist(id: Long) {
+            viewModelScope.launch {
+                val playlist = playlistRepository.getById(id)
+                playlistRepository.deletePlaylist(id)
+                _events.emit(PlaylistListEvent.PlaylistDeleted(playlist?.name ?: "Playlist"))
             }
         }
     }

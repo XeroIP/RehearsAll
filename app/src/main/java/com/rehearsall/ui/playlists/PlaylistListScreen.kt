@@ -16,9 +16,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -29,6 +36,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,12 +67,18 @@ fun PlaylistListScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showNewPlaylistDialog by remember { mutableStateOf(false) }
+    var playlistForRename by remember { mutableStateOf<Playlist?>(null) }
+    var playlistForDelete by remember { mutableStateOf<Playlist?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is PlaylistListEvent.PlaylistCreated ->
                     snackbarHostState.showSnackbar("Created \"${event.name}\"")
+                is PlaylistListEvent.PlaylistRenamed ->
+                    snackbarHostState.showSnackbar("Renamed to \"${event.newName}\"")
+                is PlaylistListEvent.PlaylistDeleted ->
+                    snackbarHostState.showSnackbar("Deleted \"${event.name}\"")
             }
         }
     }
@@ -132,6 +146,9 @@ fun PlaylistListScreen(
                             PlaylistCard(
                                 playlist = playlist,
                                 onClick = { onPlaylistClick(playlist.id) },
+                                onPlayAll = { onPlaylistClick(playlist.id) },
+                                onRename = { playlistForRename = playlist },
+                                onDelete = { playlistForDelete = playlist },
                             )
                         }
                     }
@@ -166,13 +183,52 @@ fun PlaylistListScreen(
             onDismiss = { showNewPlaylistDialog = false },
         )
     }
+
+    playlistForRename?.let { playlist ->
+        SingleFieldInputDialog(
+            title = "Rename playlist",
+            initialValue = playlist.name,
+            confirmLabel = "Rename",
+            onConfirm = { newName ->
+                viewModel.renamePlaylist(playlist.id, newName)
+                playlistForRename = null
+            },
+            onDismiss = { playlistForRename = null },
+        )
+    }
+
+    playlistForDelete?.let { playlist ->
+        AlertDialog(
+            onDismissRequest = { playlistForDelete = null },
+            title = { Text("Delete playlist?") },
+            text = { Text("\"${playlist.name}\" will be permanently deleted. Your audio files will not be affected.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deletePlaylist(playlist.id)
+                    playlistForDelete = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { playlistForDelete = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 }
 
 @Composable
 private fun PlaylistCard(
     playlist: Playlist,
     onClick: () -> Unit,
+    onPlayAll: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         modifier =
             Modifier
@@ -184,7 +240,7 @@ private fun PlaylistCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -215,6 +271,42 @@ private fun PlaylistCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Play All") },
+                        onClick = { showMenu = false; onPlayAll() },
+                        leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Rename") },
+                        onClick = { showMenu = false; onRename() },
+                        leadingIcon = { Icon(Icons.Default.Edit, null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = { showMenu = false; onDelete() },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Delete,
+                                null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                    )
+                }
+            }
         }
     }
 }

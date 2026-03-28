@@ -23,11 +23,18 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -58,7 +65,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.domain.model.AudioFile
+import com.rehearsall.domain.model.Playlist
 import com.rehearsall.ui.common.EmptyStateMessage
+import com.rehearsall.ui.common.FileDetailsBottomSheet
 import com.rehearsall.ui.common.PlaylistPickerDialog
 import com.rehearsall.ui.common.SingleFieldInputDialog
 import com.rehearsall.ui.common.SwipeToDismissBackground
@@ -80,6 +89,9 @@ fun LibraryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var showNewPlaylistDialog by remember { mutableStateOf(false) }
+    var fileForPlaylistPicker by remember { mutableStateOf<AudioFile?>(null) }
+    var fileForRename by remember { mutableStateOf<AudioFile?>(null) }
+    var fileForDetails by remember { mutableStateOf<AudioFile?>(null) }
 
     val safLauncher =
         rememberLauncherForActivityResult(
@@ -202,6 +214,10 @@ fun LibraryScreen(
                             onFileLongClick = { file ->
                                 viewModel.toggleFileSelection(file.id)
                             },
+                            onFilePlay = { file -> onFileClick(file.id) },
+                            onFileAddToPlaylist = { file -> fileForPlaylistPicker = file },
+                            onFileDetails = { file -> fileForDetails = file },
+                            onFileRename = { file -> fileForRename = file },
                             onFileDelete = { id -> viewModel.deleteFile(id) },
                             onClearSelection = viewModel::clearSelection,
                             onAddSelectedToPlaylist = { showPlaylistPicker = true },
@@ -247,6 +263,55 @@ fun LibraryScreen(
             onDismiss = { showNewPlaylistDialog = false },
         )
     }
+
+    // Per-file playlist picker
+    fileForPlaylistPicker?.let { file ->
+        val playlists = (uiState as? FileListUiState.Loaded)?.playlists ?: emptyList()
+        PlaylistPickerDialog(
+            playlists = playlists,
+            onSelect = { playlistId ->
+                viewModel.addFileToPlaylist(file.id, playlistId)
+                fileForPlaylistPicker = null
+            },
+            onDismiss = { fileForPlaylistPicker = null },
+        )
+    }
+
+    // Per-file rename dialog
+    fileForRename?.let { file ->
+        SingleFieldInputDialog(
+            title = "Rename",
+            initialValue = file.displayName,
+            confirmLabel = "Rename",
+            onConfirm = { newName ->
+                viewModel.renameFile(file.id, newName)
+                fileForRename = null
+            },
+            onDismiss = { fileForRename = null },
+        )
+    }
+
+    // File details bottom sheet
+    fileForDetails?.let { file ->
+        val playlists = (uiState as? FileListUiState.Loaded)?.playlists ?: emptyList()
+        FileDetailsBottomSheet(
+            audioFile = file,
+            playlists = playlists,
+            onDismiss = { fileForDetails = null },
+            onRename = { newName ->
+                viewModel.renameFile(file.id, newName)
+                fileForDetails = null
+            },
+            onAddToPlaylist = { playlistId ->
+                viewModel.addFileToPlaylist(file.id, playlistId)
+                fileForDetails = null
+            },
+            onDelete = {
+                viewModel.deleteFile(file.id)
+                fileForDetails = null
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -257,6 +322,10 @@ private fun FileList(
     isInSelectionMode: Boolean,
     onFileClick: (AudioFile) -> Unit,
     onFileLongClick: (AudioFile) -> Unit,
+    onFilePlay: (AudioFile) -> Unit,
+    onFileAddToPlaylist: (AudioFile) -> Unit,
+    onFileDetails: (AudioFile) -> Unit,
+    onFileRename: (AudioFile) -> Unit,
     onFileDelete: (Long) -> Unit,
     onClearSelection: () -> Unit,
     onAddSelectedToPlaylist: () -> Unit,
@@ -301,8 +370,14 @@ private fun FileList(
                 AudioFileCard(
                     audioFile = file,
                     isSelected = file.id in selectedFileIds,
+                    isInSelectionMode = isInSelectionMode,
                     onClick = { onFileClick(file) },
                     onLongClick = { onFileLongClick(file) },
+                    onPlay = { onFilePlay(file) },
+                    onAddToPlaylist = { onFileAddToPlaylist(file) },
+                    onDetails = { onFileDetails(file) },
+                    onRename = { onFileRename(file) },
+                    onDelete = { onFileDelete(file.id) },
                 )
             }
         }
@@ -354,9 +429,17 @@ private fun SelectionBar(
 private fun AudioFileCard(
     audioFile: AudioFile,
     isSelected: Boolean,
+    isInSelectionMode: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onPlay: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onDetails: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         modifier =
             Modifier
@@ -371,7 +454,7 @@ private fun AudioFileCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isSelected) {
@@ -411,7 +494,7 @@ private fun AudioFileCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
@@ -424,6 +507,54 @@ private fun AudioFileCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
+            }
+
+            if (!isInSelectionMode) {
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More options",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Play") },
+                            onClick = { showMenu = false; onPlay() },
+                            leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Add to Playlist") },
+                            onClick = { showMenu = false; onAddToPlaylist() },
+                            leadingIcon = { Icon(Icons.Default.PlaylistAdd, null) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("File Details") },
+                            onClick = { showMenu = false; onDetails() },
+                            leadingIcon = { Icon(Icons.Default.Info, null) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rename") },
+                            onClick = { showMenu = false; onRename() },
+                            leadingIcon = { Icon(Icons.Default.Edit, null) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = { showMenu = false; onDelete() },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                        )
+                    }
+                }
             }
         }
     }

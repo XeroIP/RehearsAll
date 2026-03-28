@@ -317,6 +317,8 @@ private fun PlaylistItemList(
                             index = index + 1,
                             item = item,
                             onClick = { onItemClick(index) },
+                            onPlay = { onItemClick(index) },
+                            onRemove = { onRemove(item.id) },
                             dragHandleModifier = Modifier.draggableHandle(),
                         )
                     }
@@ -331,15 +333,19 @@ private fun PlaylistTrackRow(
     index: Int,
     item: PlaylistItem,
     onClick: () -> Unit,
+    onPlay: () -> Unit,
+    onRemove: () -> Unit,
     dragHandleModifier: Modifier = Modifier,
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(start = 16.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -373,7 +379,36 @@ private fun PlaylistTrackRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Play") },
+                    onClick = { showMenu = false; onPlay() },
+                    leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
+                )
+                DropdownMenuItem(
+                    text = { Text("Remove from Playlist") },
+                    onClick = { showMenu = false; onRemove() },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Delete,
+                            null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                )
+            }
+        }
 
         Icon(
             imageVector = Icons.Default.DragHandle,
