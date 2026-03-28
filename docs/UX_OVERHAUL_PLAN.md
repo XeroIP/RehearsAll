@@ -150,36 +150,9 @@ Address the density concern for the playback screen:
 
 ---
 
-## Phase 3 — Scale & Power Users (Large libraries, 100+ files)
+## Phase 3 — Scale & Power Users
 
-### 3.1 Alphabet Scroller
-- Fast scroll indicator for Library (A-Z sidebar when sorted alphabetically)
-- Uses LazyColumn `stickyHeader` for letter group headers
-
-### 3.2 Batch Operations
-- Multi-select mode (already exists via long-press) enhanced with:
-  - Select All / Deselect All in selection bar
-  - Batch delete confirmation
-  - Batch add to playlist
-  - Batch move between playlists
-
-### 3.3 Recently Played Intelligence
-- "Continue Practicing" card on Recents tab showing last file with position
-- "Pick up where you left off" — one-tap resume with saved speed and position
-
-### 3.4 Playlist Enhancements
-- Duplicate playlist
-- Merge playlists
-
-### 3.5 Smart Playlists
-- Auto-populate based on criteria (e.g., "Recently Added", "Most Practiced")
-- Predefined rules first, custom rule builder as stretch goal
-- Visually distinguished from manual playlists
-
-### 3.6 Adaptive Layouts (Tablet)
-- Library + Playback side-by-side on tablets (list-detail pattern)
-- Use existing WindowSizeClass support
-- Bottom nav converts to NavigationRail on expanded width
+Phase 3 is tracked separately in [UX_PHASE3_PLAN.md](UX_PHASE3_PLAN.md). It covers alphabet scrolling, batch operations, recently played intelligence, playlist power features, smart playlists, and adaptive tablet layouts (issues #35–#40).
 
 ---
 
@@ -217,12 +190,8 @@ Address the density concern for the playback screen:
 | 9 | Sorting & filtering | 2.3 | #32 |
 | 10 | Playback progressive disclosure | 2.4 | #33 |
 | 11 | Gesture hints | 2.5 | #34 |
-| 12 | Alphabet scroller | 3.1 | #35 |
-| 13 | Batch operations | 3.2 | #36 |
-| 14 | Recently played intelligence | 3.3 | #37 |
-| 15 | Playlist enhancements | 3.4 | #38 |
-| 16 | Smart playlists | 3.5 | #40 |
-| 17 | Adaptive tablet layouts | 3.6 | #39 |
+
+Phase 3 items (12–17) are tracked in [UX_PHASE3_PLAN.md](UX_PHASE3_PLAN.md).
 
 ---
 
