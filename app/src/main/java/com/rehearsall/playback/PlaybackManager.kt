@@ -19,6 +19,8 @@ interface PlaybackManager {
 
     fun pause()
 
+    fun togglePlayPause()
+
     fun seekTo(positionMs: Long)
 
     fun skipForward(ms: Long)

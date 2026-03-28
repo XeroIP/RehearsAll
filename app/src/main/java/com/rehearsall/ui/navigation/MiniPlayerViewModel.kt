@@ -65,10 +65,6 @@ class MiniPlayerViewModel
         }
 
         fun togglePlayPause() {
-            if (_state.value.playbackState.isPlaying) {
-                playbackManager.pause()
-            } else {
-                playbackManager.play()
-            }
+            playbackManager.togglePlayPause()
         }
     }

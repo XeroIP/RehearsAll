@@ -3,10 +3,8 @@ package com.rehearsall.data.repository
 import com.rehearsall.data.db.dao.AudioFileDao
 import com.rehearsall.data.db.entity.AudioFileEntity
 import com.rehearsall.domain.model.AudioFile
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -58,47 +56,33 @@ class AudioFileRepositoryImpl
         }
 
         override suspend fun getById(id: Long): AudioFile? =
-            withContext(Dispatchers.IO) {
-                dao.getById(id)?.toDomain()
-            }
+            dao.getById(id)?.toDomain()
 
         override suspend fun insert(entity: AudioFileEntity): Long =
-            withContext(Dispatchers.IO) {
-                dao.insert(entity)
-            }
+            dao.insert(entity)
 
         override suspend fun delete(id: Long) =
-            withContext(Dispatchers.IO) {
-                dao.delete(id)
-            }
+            dao.delete(id)
 
         override suspend fun updateDisplayName(
             id: Long,
             displayName: String,
-        ) = withContext(Dispatchers.IO) {
-            dao.updateDisplayName(id, displayName)
-        }
+        ) = dao.updateDisplayName(id, displayName)
 
         override suspend fun updateLastPlayed(
             id: Long,
             positionMs: Long,
-        ) = withContext(Dispatchers.IO) {
-            dao.updateLastPlayed(id, System.currentTimeMillis(), positionMs)
-        }
+        ) = dao.updateLastPlayed(id, System.currentTimeMillis(), positionMs)
 
         override suspend fun updateLastPosition(
             id: Long,
             positionMs: Long,
-        ) = withContext(Dispatchers.IO) {
-            dao.updateLastPosition(id, positionMs)
-        }
+        ) = dao.updateLastPosition(id, positionMs)
 
         override suspend fun updateLastSpeed(
             id: Long,
             speed: Float,
-        ) = withContext(Dispatchers.IO) {
-            dao.updateLastSpeed(id, speed)
-        }
+        ) = dao.updateLastSpeed(id, speed)
     }
 
 private fun AudioFileEntity.toDomain(): AudioFile =

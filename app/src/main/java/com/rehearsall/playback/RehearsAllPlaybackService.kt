@@ -85,7 +85,7 @@ class RehearsAllPlaybackService : MediaLibraryService() {
                 playlistItemDao = entryPoint.playlistItemDao(),
                 loopDao = entryPoint.loopDao(),
             )
-        loopActionHandler = LoopActionHandler(entryPoint.loopDao())
+        loopActionHandler = LoopActionHandler(entryPoint.loopRepository())
         userPreferencesRepository = entryPoint.userPreferencesRepository()
 
         val audioAttributes =
@@ -354,7 +354,7 @@ class RehearsAllPlaybackService : MediaLibraryService() {
                     val speed =
                         args.getFloat(ARG_SPEED, 1.0f)
                             .coerceIn(0.25f, 3.0f)
-                    val rounded = (speed * 20).toInt() / 20f
+                    val rounded = speed.roundToSpeedStep()
                     p.playbackParameters = PlaybackParameters(rounded)
                     Timber.d("Speed set to %.2fx", rounded)
                     Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))

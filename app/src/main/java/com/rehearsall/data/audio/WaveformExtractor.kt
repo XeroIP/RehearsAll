@@ -55,7 +55,7 @@ class WaveformExtractor
                     val samplesPerWindow = (sampleRate * WINDOW_MS / 1000).toInt()
                     val totalWindows = ((durationUs / 1000) / WINDOW_MS).toInt().coerceAtLeast(1)
 
-                    val amplitudes = mutableListOf<Float>()
+                    val amplitudes = ArrayList<Float>(totalWindows + 1)
                     val mime = format.getString(MediaFormat.KEY_MIME)!!
 
                     val codec = MediaCodec.createDecoderByType(mime)

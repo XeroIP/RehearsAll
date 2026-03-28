@@ -11,7 +11,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -54,6 +56,8 @@ fun WaveformView(
 ) {
     if (amplitudes.isEmpty()) return
 
+    val sortedChunkFractions = remember(chunkMarkerFractions) { chunkMarkerFractions.sorted() }
+
     // Use rememberUpdatedState so gesture handlers always read latest values
     // without restarting the pointer input coroutine on every change.
     val currentZoom by rememberUpdatedState(zoom)
@@ -78,19 +82,26 @@ fun WaveformView(
     val positionHandleColor = MaterialTheme.colorScheme.error
     val positionHandleGripColor = MaterialTheme.colorScheme.onError
 
-    // Auto-scroll: keep cursor in view during playback
-    LaunchedEffect(positionFraction, isPlaying) {
-        val z = currentZoom
-        val s = currentScroll
-        if (isPlaying && z > 1f) {
-            val vw = 1f / z
-            val cursorInView = positionFraction - s
-            if (cursorInView > vw * 0.8f || cursorInView < vw * 0.1f) {
-                onScrollOffsetChange(
-                    (positionFraction - vw * 0.3f).coerceIn(0f, 1f - vw),
-                )
+    // Auto-scroll: keep cursor in view during playback.
+    // Key only on isPlaying so the effect isn't restarted every frame (~16ms).
+    // snapshotFlow observes positionFraction changes inside the coroutine instead.
+    val currentPositionFraction by rememberUpdatedState(positionFraction)
+    LaunchedEffect(isPlaying) {
+        if (!isPlaying) return@LaunchedEffect
+        snapshotFlow { currentPositionFraction }
+            .collect { fraction ->
+                val z = currentZoom
+                val s = currentScroll
+                if (z > 1f) {
+                    val vw = 1f / z
+                    val cursorInView = fraction - s
+                    if (cursorInView > vw * 0.8f || cursorInView < vw * 0.1f) {
+                        onScrollOffsetChange(
+                            (fraction - vw * 0.3f).coerceIn(0f, 1f - vw),
+                        )
+                    }
+                }
             }
-        }
     }
 
     val topOverhangDp = if (editable) 16.dp else 0.dp
@@ -166,16 +177,16 @@ fun WaveformView(
 
                         val slop = if (nearBoundary != null || nearPosition) boundarySlop else generalSlop
                         var dragged = false
-                        var action: String? = null
+                        var action: DragAction? = null
 
                         drag(down.id) { change ->
                             if (!dragged && abs(change.position.x - downX) > slop) {
                                 dragged = true
                                 action =
                                     when {
-                                        nearBoundary != null -> "boundary"
-                                        nearPosition -> "position"
-                                        else -> "scroll"
+                                        nearBoundary != null -> DragAction.BOUNDARY
+                                        nearPosition -> DragAction.POSITION
+                                        else -> DragAction.SCROLL
                                     }
                             }
                             if (dragged) {
@@ -183,19 +194,19 @@ fun WaveformView(
                                 val cz = currentZoom
                                 val cs = currentScroll
                                 when (action) {
-                                    "boundary" -> {
+                                    DragAction.BOUNDARY -> {
                                         val f =
                                             tapToFraction(change.position.x, canvasW, cz, cs)
                                                 .coerceIn(0f, 1f)
                                         onLoopBoundaryDrag?.invoke(nearBoundary!!, f)
                                     }
-                                    "position" -> {
+                                    DragAction.POSITION -> {
                                         val f =
                                             tapToFraction(change.position.x, canvasW, cz, cs)
                                                 .coerceIn(0f, 1f)
                                         onSeek(f)
                                     }
-                                    "scroll" -> {
+                                    DragAction.SCROLL -> {
                                         if (cz > 1f) {
                                             val dx = change.positionChange().x
                                             val cvw = 1f / cz
@@ -208,6 +219,7 @@ fun WaveformView(
                                             )
                                         }
                                     }
+                                    null -> {}
                                 }
                             }
                         }
@@ -241,8 +253,8 @@ fun WaveformView(
         val endFrac = (scrollOffset + viewportWidth).coerceAtMost(1f)
 
         // Chunk alternating backgrounds
-        if (chunkMarkerFractions.isNotEmpty()) {
-            val boundaries = listOf(0f) + chunkMarkerFractions.sorted() + listOf(1f)
+        if (sortedChunkFractions.isNotEmpty()) {
+            val boundaries = listOf(0f) + sortedChunkFractions + listOf(1f)
             for (i in 0 until boundaries.size - 1) {
                 val cs = boundaries[i]
                 val ce = boundaries[i + 1]
@@ -323,7 +335,7 @@ fun WaveformView(
         }
 
         // Chunk marker lines
-        chunkMarkerFractions.forEach { fraction ->
+        sortedChunkFractions.forEach { fraction ->
             if (fraction in startFrac..endFrac) {
                 val mx = ((fraction - startFrac) / viewportWidth) * canvasWidth
                 drawLine(
@@ -507,6 +519,8 @@ internal fun maxAmplitudeForPixel(
     for (i in iStart..iEnd) maxAmp = maxOf(maxAmp, amplitudes[i])
     return maxAmp
 }
+
+private enum class DragAction { BOUNDARY, POSITION, SCROLL }
 
 private fun tapToFraction(
     tapX: Float,

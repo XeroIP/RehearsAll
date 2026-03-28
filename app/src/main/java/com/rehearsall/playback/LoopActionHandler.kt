@@ -1,7 +1,7 @@
 package com.rehearsall.playback
 
 import androidx.media3.common.MediaItem
-import com.rehearsall.data.db.dao.LoopDao
+import com.rehearsall.data.repository.LoopRepository
 import timber.log.Timber
 
 /**
@@ -9,7 +9,7 @@ import timber.log.Timber
  * When the current file has saved loops, toggling activates/deactivates the first loop.
  */
 class LoopActionHandler(
-    private val loopDao: LoopDao,
+    private val loopRepository: LoopRepository,
 ) {
     companion object {
         const val ACTION_TOGGLE_LOOP = "com.rehearsall.ACTION_TOGGLE_LOOP"
@@ -31,7 +31,7 @@ class LoopActionHandler(
             null
         } else {
             // Loop is inactive — activate first saved loop for this file
-            val loops = loopDao.getAllForFileList(currentFileId)
+            val loops = loopRepository.getLoopsForFileList(currentFileId)
             val firstLoop = loops.firstOrNull()
             if (firstLoop != null) {
                 Timber.d("Auto: activating loop '%s' for file %d", firstLoop.name, currentFileId)

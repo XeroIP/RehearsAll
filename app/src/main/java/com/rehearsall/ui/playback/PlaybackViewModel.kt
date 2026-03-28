@@ -30,7 +30,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
@@ -216,11 +218,7 @@ class PlaybackViewModel
         // -- Transport controls --
 
         fun togglePlayPause() {
-            if (_uiState.value.playbackState.isPlaying) {
-                playbackManager.pause()
-            } else {
-                playbackManager.play()
-            }
+            playbackManager.togglePlayPause()
         }
 
         fun seekTo(positionMs: Long) {
@@ -600,14 +598,16 @@ class PlaybackViewModel
             super.onCleared()
             val state = _uiState.value.playbackState
             viewModelScope.launch {
-                repository.updateLastPlayed(audioFileId, state.positionMs)
-                repository.updateLastSpeed(audioFileId, state.speed)
-                Timber.d(
-                    "Saved playback state for id=%d: pos=%dms, speed=%.2fx",
-                    audioFileId,
-                    state.positionMs,
-                    state.speed,
-                )
+                withContext(NonCancellable) {
+                    repository.updateLastPlayed(audioFileId, state.positionMs)
+                    repository.updateLastSpeed(audioFileId, state.speed)
+                    Timber.d(
+                        "Saved playback state for id=%d: pos=%dms, speed=%.2fx",
+                        audioFileId,
+                        state.positionMs,
+                        state.speed,
+                    )
+                }
             }
         }
     }

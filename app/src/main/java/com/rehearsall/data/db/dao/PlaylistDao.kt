@@ -35,4 +35,7 @@ interface PlaylistDao {
 
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("SELECT * FROM playlists WHERE name LIKE '%' || :query || '%' LIMIT 5")
+    suspend fun search(query: String): List<PlaylistEntity>
 }

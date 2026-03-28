@@ -62,4 +62,10 @@ interface AudioFileDao {
         id: Long,
         speed: Float,
     )
+
+    @Query(
+        "SELECT * FROM audio_files WHERE displayName LIKE '%' || :query || '%' " +
+            "OR artist LIKE '%' || :query || '%' LIMIT 10",
+    )
+    suspend fun search(query: String): List<AudioFileEntity>
 }

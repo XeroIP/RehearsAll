@@ -5,6 +5,7 @@ import com.rehearsall.data.db.dao.LoopDao
 import com.rehearsall.data.db.dao.PlaylistDao
 import com.rehearsall.data.db.dao.PlaylistItemDao
 import com.rehearsall.data.preferences.UserPreferencesRepository
+import com.rehearsall.data.repository.LoopRepository
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -23,6 +24,8 @@ interface ServiceEntryPoint {
     fun playlistItemDao(): PlaylistItemDao
 
     fun loopDao(): LoopDao
+
+    fun loopRepository(): LoopRepository
 
     fun userPreferencesRepository(): UserPreferencesRepository
 }

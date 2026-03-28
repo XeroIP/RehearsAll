@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rehearsall.BuildConfig
 import com.rehearsall.domain.model.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -244,7 +245,7 @@ private fun AboutSection() {
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Version 0.2.0",
+            text = "Version ${BuildConfig.VERSION_NAME}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

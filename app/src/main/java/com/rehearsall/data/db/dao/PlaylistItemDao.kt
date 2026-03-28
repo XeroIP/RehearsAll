@@ -3,6 +3,7 @@ package com.rehearsall.data.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import com.rehearsall.data.db.entity.AudioFileEntity
 import com.rehearsall.data.db.entity.PlaylistItemEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -39,6 +40,14 @@ interface PlaylistItemDao {
         id: Long,
         orderIndex: Int,
     )
+
+    @Query(
+        "SELECT af.* FROM playlist_items pi " +
+            "INNER JOIN audio_files af ON pi.audioFileId = af.id " +
+            "WHERE pi.playlistId = :playlistId " +
+            "ORDER BY pi.orderIndex ASC",
+    )
+    suspend fun getFilesForPlaylist(playlistId: Long): List<AudioFileEntity>
 
     @Query("SELECT COUNT(*) FROM playlist_items WHERE playlistId = :playlistId")
     suspend fun getItemCount(playlistId: Long): Int

@@ -3,10 +3,8 @@ package com.rehearsall.data.repository
 import com.rehearsall.data.db.dao.BookmarkDao
 import com.rehearsall.data.db.entity.BookmarkEntity
 import com.rehearsall.domain.model.Bookmark
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -50,35 +48,27 @@ class BookmarkRepositoryImpl
             positionMs: Long,
             name: String,
         ): Long =
-            withContext(Dispatchers.IO) {
-                dao.insert(
-                    BookmarkEntity(
-                        audioFileId = audioFileId,
-                        positionMs = positionMs,
-                        name = name,
-                        createdAt = System.currentTimeMillis(),
-                    ),
-                )
-            }
+            dao.insert(
+                BookmarkEntity(
+                    audioFileId = audioFileId,
+                    positionMs = positionMs,
+                    name = name,
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
 
         override suspend fun renameBookmark(
             id: Long,
             name: String,
-        ) = withContext(Dispatchers.IO) {
-            dao.updateName(id, name)
-        }
+        ) = dao.updateName(id, name)
 
         override suspend fun updateBookmarkPosition(
             id: Long,
             positionMs: Long,
-        ) = withContext(Dispatchers.IO) {
-            dao.updatePosition(id, positionMs)
-        }
+        ) = dao.updatePosition(id, positionMs)
 
         override suspend fun deleteBookmark(id: Long) =
-            withContext(Dispatchers.IO) {
-                dao.delete(id)
-            }
+            dao.delete(id)
     }
 
 private fun BookmarkEntity.toDomain(): Bookmark =

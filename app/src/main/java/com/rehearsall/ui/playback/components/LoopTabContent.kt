@@ -28,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rehearsall.domain.model.Loop
 import com.rehearsall.playback.LoopRegion
+import com.rehearsall.ui.common.SingleFieldInputDialog
 import com.rehearsall.ui.common.formatDuration
 
 @Composable
@@ -313,7 +313,10 @@ fun LoopTabContent(
 
     // Save as new loop dialog
     if (showSaveDialog) {
-        SaveLoopDialog(
+        SingleFieldInputDialog(
+            title = "Save loop",
+            label = "Loop name",
+            confirmLabel = "Save",
             onConfirm = { name ->
                 onSaveLoop(name)
                 onClearLoop()
@@ -404,33 +407,3 @@ private fun SavedLoopRow(
     }
 }
 
-@Composable
-private fun SaveLoopDialog(
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var text by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Save Loop") },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Loop name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(text.trim()) },
-                enabled = text.isNotBlank(),
-            ) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
-}

@@ -1,6 +1,5 @@
 package com.rehearsall.ui.common
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,13 +11,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -115,8 +112,10 @@ fun FileDetailsBottomSheet(
     }
 
     if (showRenameDialog) {
-        RenameDialog(
-            currentName = audioFile.displayName,
+        SingleFieldInputDialog(
+            title = "Rename file",
+            initialValue = audioFile.displayName,
+            confirmLabel = "Rename",
             onConfirm = { newName ->
                 showRenameDialog = false
                 onRename(newName)
@@ -159,88 +158,6 @@ private fun DetailRow(
             style = MaterialTheme.typography.bodyMedium,
         )
     }
-}
-
-@Composable
-private fun RenameDialog(
-    currentName: String,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var name by remember { mutableStateOf(currentName) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rename") },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(name) },
-                enabled = name.isNotBlank(),
-            ) {
-                Text("Rename")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
-}
-
-@Composable
-private fun PlaylistPickerDialog(
-    playlists: List<Playlist>,
-    onSelect: (Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add to playlist") },
-        text = {
-            if (playlists.isEmpty()) {
-                Text("No playlists yet. Create one first.")
-            } else {
-                Column {
-                    playlists.forEach { playlist ->
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onSelect(playlist.id) }
-                                    .padding(vertical = 12.dp),
-                        ) {
-                            Text(
-                                text = playlist.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                text = "${playlist.trackCount} tracks",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
 }
 
 internal fun formatDuration(ms: Long): String {

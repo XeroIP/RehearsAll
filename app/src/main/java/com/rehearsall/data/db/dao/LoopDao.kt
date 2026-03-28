@@ -35,4 +35,7 @@ interface LoopDao {
 
     @Query("DELETE FROM loops WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("SELECT DISTINCT audioFileId FROM loops")
+    suspend fun getFileIdsWithLoops(): List<Long>
 }

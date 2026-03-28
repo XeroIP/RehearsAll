@@ -1,6 +1,5 @@
 package com.rehearsall.ui.playlist
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,7 +36,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -62,6 +59,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.domain.model.PlaylistItem
+import com.rehearsall.ui.common.EmptyStateMessage
+import com.rehearsall.ui.common.SingleFieldInputDialog
+import com.rehearsall.ui.common.SwipeToDismissBackground
 import com.rehearsall.ui.common.formatDuration
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -180,7 +180,12 @@ fun PlaylistScreen(
 
             is PlaylistUiState.Loaded -> {
                 if (state.items.isEmpty()) {
-                    PlaylistEmptyState(modifier = Modifier.padding(innerPadding))
+                    EmptyStateMessage(
+                        icon = Icons.Default.MusicNote,
+                        title = "No tracks in this playlist",
+                        subtitle = "Long-press a file to add it to a playlist",
+                        modifier = Modifier.padding(innerPadding),
+                    )
                 } else {
                     PlaylistItemList(
                         items = state.items,
@@ -211,8 +216,10 @@ fun PlaylistScreen(
 
     // Rename dialog
     if (showRenameDialog) {
-        RenamePlaylistDialog(
-            currentName = playlistName,
+        SingleFieldInputDialog(
+            title = "Rename playlist",
+            initialValue = playlistName,
+            confirmLabel = "Rename",
             onConfirm = { newName ->
                 showRenameDialog = false
                 viewModel.renamePlaylist(newName)
@@ -241,34 +248,6 @@ fun PlaylistScreen(
                 }
             },
         )
-    }
-}
-
-@Composable
-private fun PlaylistEmptyState(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                modifier = Modifier.padding(bottom = 16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            )
-            Text(
-                text = "No tracks in this playlist",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Long-press a file to add it to a playlist",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            )
-        }
     }
 }
 
@@ -324,29 +303,10 @@ private fun PlaylistItemList(
                 SwipeToDismissBox(
                     state = dismissState,
                     backgroundContent = {
-                        val color by animateColorAsState(
-                            targetValue =
-                                if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                                    MaterialTheme.colorScheme.errorContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                },
-                            label = "swipe-bg",
+                        SwipeToDismissBackground(
+                            targetValue = dismissState.targetValue,
+                            contentDescription = "Remove",
                         )
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .background(color)
-                                    .padding(horizontal = 24.dp),
-                            contentAlignment = Alignment.CenterEnd,
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Remove",
-                                tint = MaterialTheme.colorScheme.onErrorContainer,
-                            )
-                        }
                     },
                     enableDismissFromStartToEnd = false,
                 ) {
@@ -424,38 +384,3 @@ private fun PlaylistTrackRow(
     }
 }
 
-@Composable
-private fun RenamePlaylistDialog(
-    currentName: String,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var name by remember { mutableStateOf(currentName) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rename playlist") },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(name) },
-                enabled = name.isNotBlank(),
-            ) {
-                Text("Rename")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
-}

@@ -3,7 +3,6 @@ package com.rehearsall.ui.filelist
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,12 +25,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,7 +38,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -67,6 +62,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.domain.model.AudioFile
 import com.rehearsall.domain.model.Playlist
+import com.rehearsall.ui.common.EmptyStateMessage
+import com.rehearsall.ui.common.PlaylistPickerDialog
+import com.rehearsall.ui.common.SingleFieldInputDialog
+import com.rehearsall.ui.common.SwipeToDismissBackground
 import com.rehearsall.ui.common.formatDuration
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -187,7 +186,11 @@ fun FileListScreen(
 
                 is FileListUiState.Loaded -> {
                     if (state.files.isEmpty() && state.playlists.isEmpty()) {
-                        EmptyState()
+                        EmptyStateMessage(
+                            icon = Icons.Default.MusicNote,
+                            title = "No audio files yet",
+                            subtitle = "Tap + to import an audio file",
+                        )
                     } else {
                         CombinedList(
                             files = state.files,
@@ -243,42 +246,15 @@ fun FileListScreen(
 
     // New playlist dialog
     if (showNewPlaylistDialog) {
-        NewPlaylistDialog(
+        SingleFieldInputDialog(
+            title = "New playlist",
+            confirmLabel = "Create",
             onConfirm = { name ->
                 showNewPlaylistDialog = false
                 viewModel.createPlaylist(name)
             },
             onDismiss = { showNewPlaylistDialog = false },
         )
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "No audio files yet",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Tap + to import an audio file",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            )
-        }
     }
 }
 
@@ -312,49 +288,47 @@ private fun CombinedList(
             }
         }
 
-        // Playlists section
-        if (playlists.isNotEmpty() || true) { // Always show section for "New Playlist" button
-            item(key = "playlists-header") {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Playlists",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TextButton(onClick = onNewPlaylist) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("New Playlist")
-                    }
-                }
-            }
-
-            items(
-                items = playlists,
-                key = { "playlist-${it.id}" },
-            ) { playlist ->
-                PlaylistCard(
-                    playlist = playlist,
-                    onClick = { onPlaylistClick(playlist.id) },
+        // Playlists section — always shown so "New Playlist" button is accessible
+        item(key = "playlists-header") {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Playlists",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-
-            if (files.isNotEmpty()) {
-                item(key = "files-header") {
-                    Text(
-                        text = "All Files",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
+                TextButton(onClick = onNewPlaylist) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("New Playlist")
                 }
+            }
+        }
+
+        items(
+            items = playlists,
+            key = { "playlist-${it.id}" },
+        ) { playlist ->
+            PlaylistCard(
+                playlist = playlist,
+                onClick = { onPlaylistClick(playlist.id) },
+            )
+        }
+
+        if (files.isNotEmpty()) {
+            item(key = "files-header") {
+                Text(
+                    text = "All Files",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
         }
 
@@ -378,29 +352,7 @@ private fun CombinedList(
             SwipeToDismissBox(
                 state = dismissState,
                 backgroundContent = {
-                    val color by animateColorAsState(
-                        targetValue =
-                            if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                                MaterialTheme.colorScheme.errorContainer
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            },
-                        label = "swipe-bg",
-                    )
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .background(color)
-                                .padding(horizontal = 24.dp),
-                        contentAlignment = Alignment.CenterEnd,
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                        )
-                    }
+                    SwipeToDismissBackground(targetValue = dismissState.targetValue)
                 },
                 enableDismissFromStartToEnd = false,
             ) {
@@ -588,84 +540,3 @@ private fun AudioFileCard(
     }
 }
 
-@Composable
-private fun PlaylistPickerDialog(
-    playlists: List<Playlist>,
-    onSelect: (Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add to playlist") },
-        text = {
-            if (playlists.isEmpty()) {
-                Text("No playlists yet. Create one first.")
-            } else {
-                LazyColumn {
-                    items(items = playlists, key = { it.id }) { playlist ->
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onSelect(playlist.id) }
-                                    .padding(vertical = 12.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = playlist.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
-}
-
-@Composable
-private fun NewPlaylistDialog(
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var name by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New playlist") },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(name) },
-                enabled = name.isNotBlank(),
-            ) {
-                Text("Create")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
-}

@@ -33,9 +33,10 @@ class AudioImporter
         suspend fun import(uri: Uri): Result<AudioFile> =
             withContext(Dispatchers.IO) {
                 try {
-                    val fileName =
-                        getFileName(uri)
-                            ?: return@withContext Result.failure(ImportError.UnknownFileName)
+                    val (fileName, fileSize) = getFileInfo(uri)
+                    if (fileName == null) {
+                        return@withContext Result.failure(ImportError.UnknownFileName)
+                    }
 
                     val extension = fileName.substringAfterLast('.', "").lowercase()
                     if (extension !in SUPPORTED_FORMATS) {
@@ -44,8 +45,6 @@ class AudioImporter
                             ImportError.UnsupportedFormat(extension, SUPPORTED_FORMATS),
                         )
                     }
-
-                    val fileSize = getFileSize(uri)
                     if (fileSize > MAX_FILE_SIZE_BYTES) {
                         Timber.w("Import rejected: file too large (%d bytes) for '%s'", fileSize, fileName)
                         return@withContext Result.failure(ImportError.FileTooLarge(fileSize, MAX_FILE_SIZE_BYTES))
@@ -103,28 +102,17 @@ class AudioImporter
                 }
             }
 
-        private fun getFileName(uri: Uri): String? {
+        private fun getFileInfo(uri: Uri): Pair<String?, Long> {
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (nameIndex >= 0) {
-                        return cursor.getString(nameIndex)
-                    }
-                }
-            }
-            return uri.lastPathSegment
-        }
-
-        private fun getFileSize(uri: Uri): Long {
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
                     val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                    if (sizeIndex >= 0) {
-                        return cursor.getLong(sizeIndex)
-                    }
+                    val name = if (nameIndex >= 0) cursor.getString(nameIndex) else null
+                    val size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
+                    return Pair(name ?: uri.lastPathSegment, size)
                 }
             }
-            return 0L
+            return Pair(uri.lastPathSegment, 0L)
         }
 
         private fun copyToInternal(

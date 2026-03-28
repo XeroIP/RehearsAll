@@ -87,23 +87,15 @@ class ContentTreeBuilder(
     }
 
     suspend fun search(query: String): List<MediaItem> {
-        val lowerQuery = query.lowercase()
         val results = mutableListOf<MediaItem>()
 
-        // Search files
-        val files = audioFileDao.getAllList()
-        files.filter {
-            it.displayName.lowercase().contains(lowerQuery) ||
-                it.artist?.lowercase()?.contains(lowerQuery) == true
-        }.take(10).forEach { file ->
+        // Search files via database query
+        audioFileDao.search(query).forEach { file ->
             results.add(MediaItemMapper.playableFile(file))
         }
 
-        // Search playlists
-        val playlists = playlistDao.getAllList()
-        playlists.filter {
-            it.name.lowercase().contains(lowerQuery)
-        }.take(5).forEach { playlist ->
+        // Search playlists via database query
+        playlistDao.search(query).forEach { playlist ->
             results.add(MediaItemMapper.playablePlaylist(playlist))
         }
 
@@ -118,9 +110,9 @@ class ContentTreeBuilder(
 
     private suspend fun getAllFiles(): List<MediaItem> {
         val files = audioFileDao.getAllList()
+        val fileIdsWithLoops = loopDao.getFileIdsWithLoops().toSet()
         return files.map { file ->
-            val loops = loopDao.getAllForFileList(file.id)
-            if (loops.isNotEmpty()) {
+            if (file.id in fileIdsWithLoops) {
                 MediaItemMapper.browsableFileWithLoops(file)
             } else {
                 MediaItemMapper.playableFile(file)
@@ -146,10 +138,8 @@ class ContentTreeBuilder(
     }
 
     private suspend fun getPlaylistTracks(playlistId: Long): List<MediaItem> {
-        val items = playlistItemDao.getItemsForPlaylist(playlistId)
-        return items.mapNotNull { playlistItem ->
-            val file = audioFileDao.getById(playlistItem.audioFileId)
-            file?.let { MediaItemMapper.playlistTrackItem(it, playlistId) }
+        return playlistItemDao.getFilesForPlaylist(playlistId).map { file ->
+            MediaItemMapper.playlistTrackItem(file, playlistId)
         }
     }
 }

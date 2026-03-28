@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rehearsall.playback.roundToSpeedStep
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +67,7 @@ fun SpeedControlBottomSheet(
             ) {
                 OutlinedButton(
                     onClick = {
-                        val newSpeed = ((currentSpeed - 0.05f) * 20).toInt() / 20f
+                        val newSpeed = (currentSpeed - 0.05f).roundToSpeedStep()
                         onSpeedChange(newSpeed.coerceAtLeast(0.25f))
                     },
                 ) {
@@ -75,7 +76,7 @@ fun SpeedControlBottomSheet(
 
                 OutlinedButton(
                     onClick = {
-                        val newSpeed = ((currentSpeed + 0.05f) * 20).toInt() / 20f
+                        val newSpeed = (currentSpeed + 0.05f).roundToSpeedStep()
                         onSpeedChange(newSpeed.coerceAtMost(3.0f))
                     },
                 ) {
@@ -89,8 +90,7 @@ fun SpeedControlBottomSheet(
             Slider(
                 value = currentSpeed,
                 onValueChange = { speed ->
-                    val rounded = (speed * 20).toInt() / 20f
-                    onSpeedChange(rounded)
+                    onSpeedChange(speed.roundToSpeedStep())
                 },
                 valueRange = 0.25f..3.0f,
                 modifier = Modifier.fillMaxWidth(),

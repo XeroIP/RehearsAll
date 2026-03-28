@@ -26,8 +26,7 @@ class WaveformCache
             private const val VERSION: Byte = 1
         }
 
-        private val cacheDir: File
-            get() = File(context.filesDir, "waveforms").also { it.mkdirs() }
+        private val cacheDir by lazy { File(context.filesDir, "waveforms").also { it.mkdirs() } }
 
         fun getCacheFile(audioFileId: Long): File = File(cacheDir, "$audioFileId.waveform")
 

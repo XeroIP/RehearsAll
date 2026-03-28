@@ -1,5 +1,6 @@
 package com.rehearsall.data.repository
 
+import androidx.compose.runtime.Immutable
 import com.rehearsall.data.audio.WaveformCache
 import com.rehearsall.data.audio.WaveformExtractor
 import kotlinx.coroutines.flow.Flow
@@ -8,9 +9,11 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Immutable
 sealed interface WaveformState {
     data object Loading : WaveformState
 
+    @Immutable
     data class Ready(val amplitudes: FloatArray) : WaveformState {
         override fun equals(other: Any?): Boolean = other is Ready && amplitudes.contentEquals(other.amplitudes)
 

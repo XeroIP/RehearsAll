@@ -27,6 +27,7 @@ class ChunkedPracticeEngine
         val state: StateFlow<PracticeState> = _state.asStateFlow()
 
         private var practiceJob: Job? = null
+        private var practiceScope: CoroutineScope? = null
         private var steps: List<PracticeStep> = emptyList()
         private var settings: PracticeSettings = PracticeSettings()
         private var currentStepIndex = 0
@@ -42,63 +43,12 @@ class ChunkedPracticeEngine
             this.steps = steps
             this.settings = settings
             this.currentStepIndex = 0
+            this.practiceScope = scope
 
             practiceJob =
                 scope.launch {
-                    runPractice()
+                    runFromStep(0)
                 }
-        }
-
-        private suspend fun runPractice() {
-            for (i in steps.indices) {
-                currentStepIndex = i
-                val step = steps[i]
-
-                for (rep in 1..step.repeatCount) {
-                    _state.value =
-                        PracticeState.Playing(
-                            currentStep = step,
-                            stepIndex = i,
-                            totalSteps = steps.size,
-                            currentRep = rep,
-                            totalReps = step.repeatCount,
-                        )
-
-                    // Set loop region and seek to start
-                    playbackManager.setLoopRegion(LoopRegion(step.startMs, step.endMs))
-                    playbackManager.seekTo(step.startMs)
-                    playbackManager.play()
-
-                    // Wait for this rep to complete (duration of the chunk)
-                    val chunkDuration = step.endMs - step.startMs
-                    val adjustedDuration = (chunkDuration / playbackManager.playbackState.value.speed.coerceAtLeast(0.25f)).toLong()
-                    delay(adjustedDuration)
-
-                    // Gap between reps (except after last rep)
-                    if (rep < step.repeatCount && settings.gapBetweenRepsMs > 0) {
-                        playbackManager.pause()
-                        delay(settings.gapBetweenRepsMs)
-                    }
-                }
-
-                // Gap between chunks (except after last chunk)
-                if (i < steps.size - 1 && settings.gapBetweenChunksMs > 0) {
-                    playbackManager.pause()
-                    _state.value =
-                        PracticeState.Pausing(
-                            nextStep = steps.getOrNull(i + 1),
-                            stepIndex = i,
-                            totalSteps = steps.size,
-                        )
-                    delay(settings.gapBetweenChunksMs)
-                }
-            }
-
-            // Practice complete
-            playbackManager.pause()
-            playbackManager.clearLoopRegion()
-            _state.value = PracticeState.Complete
-            Timber.i("Practice session complete: %d steps", steps.size)
         }
 
         fun skipToNextStep() {
@@ -107,9 +57,7 @@ class ChunkedPracticeEngine
                 practiceJob?.cancel()
                 currentStepIndex = nextIndex
                 practiceJob =
-                    kotlinx.coroutines.CoroutineScope(
-                        kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.SupervisorJob(),
-                    ).launch {
+                    practiceScope?.launch {
                         runFromStep(nextIndex)
                     }
             }
@@ -120,9 +68,7 @@ class ChunkedPracticeEngine
             practiceJob?.cancel()
             currentStepIndex = prevIndex
             practiceJob =
-                kotlinx.coroutines.CoroutineScope(
-                    kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.SupervisorJob(),
-                ).launch {
+                practiceScope?.launch {
                     runFromStep(prevIndex)
                 }
         }
@@ -171,11 +117,13 @@ class ChunkedPracticeEngine
             playbackManager.pause()
             playbackManager.clearLoopRegion()
             _state.value = PracticeState.Complete
+            Timber.i("Practice session complete: %d steps", steps.size)
         }
 
         fun stopPractice() {
             practiceJob?.cancel()
             practiceJob = null
+            practiceScope = null
             if (_state.value !is PracticeState.Idle) {
                 playbackManager.clearLoopRegion()
                 _state.value = PracticeState.Idle

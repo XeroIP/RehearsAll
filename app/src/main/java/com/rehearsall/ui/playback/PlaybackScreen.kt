@@ -369,7 +369,6 @@ private fun PlaybackContent(
                             items(uiState.chunkMarkers, key = { it.id }) { marker ->
                                 OverlayChunkRow(
                                     marker = marker,
-                                    durationMs = uiState.playbackState.durationMs,
                                     onTap = { viewModel.seekToChunk(marker.positionMs) },
                                 )
                             }
@@ -646,7 +645,6 @@ private fun OverlayLoopRow(
 @Composable
 private fun OverlayChunkRow(
     marker: ChunkMarker,
-    durationMs: Long,
     onTap: () -> Unit,
 ) {
     Text(

@@ -145,7 +145,7 @@ class PlaybackManagerImpl
                     while (true) {
                         val b = browser ?: break
                         updatePlaybackState(b)
-                        delay(16) // ~60fps for smooth scrubber
+                        delay(32) // ~30fps — sufficient for smooth scrubber
                     }
                 }
         }
@@ -179,13 +179,22 @@ class PlaybackManagerImpl
         }
 
         private fun updatePlaybackState(player: MediaBrowser) {
-            _playbackState.value =
+            val newState =
                 PlaybackState(
                     positionMs = player.currentPosition.coerceAtLeast(0L),
                     durationMs = player.duration.coerceAtLeast(0L),
                     isPlaying = player.isPlaying,
                     speed = player.playbackParameters.speed,
                 )
+            // Only emit when state has meaningfully changed to avoid unnecessary recompositions
+            val current = _playbackState.value
+            if (newState.isPlaying != current.isPlaying ||
+                newState.durationMs != current.durationMs ||
+                newState.speed != current.speed ||
+                kotlin.math.abs(newState.positionMs - current.positionMs) >= 16
+            ) {
+                _playbackState.value = newState
+            }
         }
 
         // -- Transport --
@@ -196,6 +205,11 @@ class PlaybackManagerImpl
 
         override fun pause() {
             browser?.pause()
+        }
+
+        override fun togglePlayPause() {
+            val b = browser ?: return
+            if (b.isPlaying) b.pause() else b.play()
         }
 
         override fun seekTo(positionMs: Long) {
@@ -247,7 +261,7 @@ class PlaybackManagerImpl
             // Optimistic UI update
             _playbackState.value =
                 _playbackState.value.copy(
-                    speed = (speed * 20).toInt() / 20f,
+                    speed = speed.roundToSpeedStep(),
                 )
         }
 

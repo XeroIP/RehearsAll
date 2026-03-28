@@ -7,10 +7,8 @@ import com.rehearsall.data.db.entity.PlaylistEntity
 import com.rehearsall.data.db.entity.PlaylistItemEntity
 import com.rehearsall.domain.model.Playlist
 import com.rehearsall.domain.model.PlaylistItem
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -70,38 +68,32 @@ class PlaylistRepositoryImpl
             }
         }
 
-        override suspend fun getById(id: Long): Playlist? =
-            withContext(Dispatchers.IO) {
-                val entity = playlistDao.getById(id) ?: return@withContext null
-                val count = playlistItemDao.getItemCount(id)
-                val duration = playlistItemDao.getTotalDuration(id)
-                entity.toDomain(count, duration)
-            }
+        override suspend fun getById(id: Long): Playlist? {
+            val entity = playlistDao.getById(id) ?: return null
+            val count = playlistItemDao.getItemCount(id)
+            val duration = playlistItemDao.getTotalDuration(id)
+            return entity.toDomain(count, duration)
+        }
 
-        override suspend fun createPlaylist(name: String): Long =
-            withContext(Dispatchers.IO) {
-                val now = System.currentTimeMillis()
-                playlistDao.insert(
-                    PlaylistEntity(name = name, createdAt = now, updatedAt = now),
-                )
-            }
+        override suspend fun createPlaylist(name: String): Long {
+            val now = System.currentTimeMillis()
+            return playlistDao.insert(
+                PlaylistEntity(name = name, createdAt = now, updatedAt = now),
+            )
+        }
 
         override suspend fun renamePlaylist(
             id: Long,
             name: String,
-        ) = withContext(Dispatchers.IO) {
-            playlistDao.updateName(id, name)
-        }
+        ) = playlistDao.updateName(id, name)
 
         override suspend fun deletePlaylist(id: Long) =
-            withContext(Dispatchers.IO) {
-                playlistDao.delete(id) // CASCADE deletes items
-            }
+            playlistDao.delete(id) // CASCADE deletes items
 
         override suspend fun addFileToPlaylist(
             playlistId: Long,
             audioFileId: Long,
-        ) = withContext(Dispatchers.IO) {
+        ) {
             val maxOrder = playlistItemDao.getMaxOrderIndex(playlistId) ?: -1
             playlistItemDao.insert(
                 PlaylistItemEntity(
@@ -116,7 +108,7 @@ class PlaylistRepositoryImpl
         override suspend fun removeItem(
             itemId: Long,
             playlistId: Long,
-        ) = withContext(Dispatchers.IO) {
+        ) {
             playlistItemDao.delete(itemId)
             playlistDao.touch(playlistId)
         }
@@ -124,7 +116,7 @@ class PlaylistRepositoryImpl
         override suspend fun reorderItems(
             playlistId: Long,
             items: List<Pair<Long, Int>>,
-        ) = withContext(Dispatchers.IO) {
+        ) {
             items.forEach { (id, order) ->
                 playlistItemDao.updateOrder(id, order)
             }

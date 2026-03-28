@@ -15,14 +15,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rehearsall.domain.model.Bookmark
+import com.rehearsall.ui.common.SingleFieldInputDialog
 import com.rehearsall.ui.common.formatDuration
 
 @Composable
@@ -89,8 +87,10 @@ fun BookmarkTabContent(
     }
 
     renameTarget?.let { bookmark ->
-        RenameBookmarkDialog(
-            currentName = bookmark.name,
+        SingleFieldInputDialog(
+            title = "Rename bookmark",
+            initialValue = bookmark.name,
+            confirmLabel = "Rename",
             onConfirm = { newName ->
                 onRename(bookmark.id, newName)
                 renameTarget = null
@@ -166,34 +166,3 @@ private fun BookmarkRow(
     }
 }
 
-@Composable
-private fun RenameBookmarkDialog(
-    currentName: String,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var text by remember { mutableStateOf(currentName) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rename Bookmark") },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(text.trim()) },
-                enabled = text.isNotBlank(),
-            ) { Text("Rename") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
-}

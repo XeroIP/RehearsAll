@@ -3,10 +3,8 @@ package com.rehearsall.data.repository
 import com.rehearsall.data.db.dao.ChunkMarkerDao
 import com.rehearsall.data.db.entity.ChunkMarkerEntity
 import com.rehearsall.domain.model.ChunkMarker
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -49,35 +47,27 @@ class ChunkMarkerRepositoryImpl
             positionMs: Long,
             label: String,
         ): Long =
-            withContext(Dispatchers.IO) {
-                dao.insert(
-                    ChunkMarkerEntity(
-                        audioFileId = audioFileId,
-                        positionMs = positionMs,
-                        label = label,
-                        createdAt = System.currentTimeMillis(),
-                    ),
-                )
-            }
+            dao.insert(
+                ChunkMarkerEntity(
+                    audioFileId = audioFileId,
+                    positionMs = positionMs,
+                    label = label,
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
 
         override suspend fun updateLabel(
             id: Long,
             label: String,
-        ) = withContext(Dispatchers.IO) {
-            dao.updateLabel(id, label)
-        }
+        ) = dao.updateLabel(id, label)
 
         override suspend fun updatePosition(
             id: Long,
             positionMs: Long,
-        ) = withContext(Dispatchers.IO) {
-            dao.updatePosition(id, positionMs)
-        }
+        ) = dao.updatePosition(id, positionMs)
 
         override suspend fun deleteMarker(id: Long) =
-            withContext(Dispatchers.IO) {
-                dao.delete(id)
-            }
+            dao.delete(id)
     }
 
 private fun ChunkMarkerEntity.toDomain(): ChunkMarker =
