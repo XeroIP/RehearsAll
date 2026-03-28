@@ -181,15 +181,16 @@ Phase 3 is tracked separately in [UX_PHASE3_PLAN.md](UX_PHASE3_PLAN.md). It cove
 |-------|------|-------|-------|
 | 1 | Bottom navigation bar | 1.2 | #26 |
 | 2 | 3-dot menu per item | 1.3 | #27 |
-| 3 | Add tracks from playlist | 1.6 | #25 |
-| 4 | Contextual empty states | 1.4 | #28 |
-| 5 | Import progress indicator | 1.5 | #18 |
-| 6 | Skippable onboarding | 1.1 | #29 |
-| 7 | Search | 2.1 | #30 |
-| 8 | Playlist visual identity | 2.2 | #31 |
-| 9 | Sorting & filtering | 2.3 | #32 |
-| 10 | Playback progressive disclosure | 2.4 | #33 |
-| 11 | Gesture hints | 2.5 | #34 |
+| 3 | Create playlist from picker when empty | 1.3 | #43 |
+| 4 | Add tracks from playlist | 1.6 | #25 |
+| 5 | Contextual empty states | 1.4 | #28 |
+| 6 | Import progress indicator | 1.5 | #18 |
+| 7 | Skippable onboarding | 1.1 | #29 |
+| 8 | Search | 2.1 | #30 |
+| 9 | Playlist visual identity | 2.2 | #31 |
+| 10 | Sorting & filtering | 2.3 | #32 |
+| 11 | Playback progressive disclosure | 2.4 | #33 |
+| 12 | Gesture hints | 2.5 | #34 |
 
 Phase 3 items (12–17) are tracked in [UX_PHASE3_PLAN.md](UX_PHASE3_PLAN.md).
 
