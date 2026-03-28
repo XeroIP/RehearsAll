@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -48,6 +49,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -92,6 +94,7 @@ fun LibraryScreen(
     var fileForPlaylistPicker by remember { mutableStateOf<AudioFile?>(null) }
     var fileForRename by remember { mutableStateOf<AudioFile?>(null) }
     var fileForDetails by remember { mutableStateOf<AudioFile?>(null) }
+    var fileForDelete by remember { mutableStateOf<AudioFile?>(null) }
 
     val safLauncher =
         rememberLauncherForActivityResult(
@@ -218,7 +221,8 @@ fun LibraryScreen(
                             onFileAddToPlaylist = { file -> fileForPlaylistPicker = file },
                             onFileDetails = { file -> fileForDetails = file },
                             onFileRename = { file -> fileForRename = file },
-                            onFileDelete = { id -> viewModel.deleteFile(id) },
+                            onFileSwipeDelete = { file -> fileForDelete = file },
+                            onFileDelete = { file -> fileForDelete = file },
                             onClearSelection = viewModel::clearSelection,
                             onAddSelectedToPlaylist = { showPlaylistPicker = true },
                         )
@@ -312,6 +316,28 @@ fun LibraryScreen(
             },
         )
     }
+
+    // Delete confirmation dialog
+    fileForDelete?.let { file ->
+        AlertDialog(
+            onDismissRequest = { fileForDelete = null },
+            title = { Text("Delete file?") },
+            text = { Text("\"${file.displayName}\" will be permanently deleted.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteFile(file.id)
+                    fileForDelete = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { fileForDelete = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -326,7 +352,8 @@ private fun FileList(
     onFileAddToPlaylist: (AudioFile) -> Unit,
     onFileDetails: (AudioFile) -> Unit,
     onFileRename: (AudioFile) -> Unit,
-    onFileDelete: (Long) -> Unit,
+    onFileSwipeDelete: (AudioFile) -> Unit,
+    onFileDelete: (AudioFile) -> Unit,
     onClearSelection: () -> Unit,
     onAddSelectedToPlaylist: () -> Unit,
 ) {
@@ -352,8 +379,8 @@ private fun FileList(
                 rememberSwipeToDismissBoxState(
                     confirmValueChange = { value ->
                         if (value == SwipeToDismissBoxValue.EndToStart) {
-                            onFileDelete(file.id)
-                            true
+                            onFileSwipeDelete(file)
+                            false // Don't dismiss — let the dialog handle it
                         } else {
                             false
                         }
@@ -377,7 +404,7 @@ private fun FileList(
                     onAddToPlaylist = { onFileAddToPlaylist(file) },
                     onDetails = { onFileDetails(file) },
                     onRename = { onFileRename(file) },
-                    onDelete = { onFileDelete(file.id) },
+                    onDelete = { onFileDelete(file) },
                 )
             }
         }

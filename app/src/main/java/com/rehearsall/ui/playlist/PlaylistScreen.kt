@@ -288,17 +288,14 @@ private fun PlaylistItemList(
                     label = "drag-elevation",
                 )
 
-                val dismissState =
-                    rememberSwipeToDismissBoxState(
-                        confirmValueChange = { value ->
-                            if (value == SwipeToDismissBoxValue.EndToStart) {
-                                onRemove(item.id)
-                                true
-                            } else {
-                                false
-                            }
-                        },
-                    )
+                val dismissState = rememberSwipeToDismissBoxState()
+
+                LaunchedEffect(dismissState.currentValue) {
+                    if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+                        onRemove(item.id)
+                        dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                    }
+                }
 
                 SwipeToDismissBox(
                     state = dismissState,
@@ -312,6 +309,13 @@ private fun PlaylistItemList(
                 ) {
                     Card(
                         elevation = CardDefaults.cardElevation(defaultElevation = elevation),
+                        colors = if (isDragging) {
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            )
+                        } else {
+                            CardDefaults.cardColors()
+                        },
                     ) {
                         PlaylistTrackRow(
                             index = index + 1,

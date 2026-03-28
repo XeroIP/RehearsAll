@@ -133,6 +133,8 @@ class PlaybackViewModel
                         playbackManager.setSpeed(file.lastSpeed)
                     }
                 }
+                // Mark as recently played so it appears in the Recents tab
+                repository.updateLastPlayed(audioFileId, file.lastPositionMs)
             }
         }
 
