@@ -241,6 +241,10 @@ fun FileListScreen(
                 showPlaylistPicker = false
             },
             onDismiss = { showPlaylistPicker = false },
+            onCreatePlaylist = { name ->
+                viewModel.createPlaylist(name)
+                showPlaylistPicker = false
+            },
         )
     }
 

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Settings
@@ -253,6 +254,10 @@ fun LibraryScreen(
                 showPlaylistPicker = false
             },
             onDismiss = { showPlaylistPicker = false },
+            onCreatePlaylist = { name ->
+                viewModel.createPlaylist(name)
+                showPlaylistPicker = false
+            },
         )
     }
 
@@ -278,6 +283,10 @@ fun LibraryScreen(
                 fileForPlaylistPicker = null
             },
             onDismiss = { fileForPlaylistPicker = null },
+            onCreatePlaylist = { name ->
+                viewModel.createPlaylist(name)
+                fileForPlaylistPicker = null
+            },
         )
     }
 
@@ -314,6 +323,9 @@ fun LibraryScreen(
                 viewModel.deleteFile(file.id)
                 fileForDetails = null
             },
+            onCreatePlaylist = { name ->
+                viewModel.createPlaylist(name)
+            },
         )
     }
 
@@ -321,14 +333,14 @@ fun LibraryScreen(
     fileForDelete?.let { file ->
         AlertDialog(
             onDismissRequest = { fileForDelete = null },
-            title = { Text("Delete file?") },
-            text = { Text("\"${file.displayName}\" will be permanently deleted.") },
+            title = { Text("Remove from library?") },
+            text = { Text("\"${file.displayName}\" will be removed from the app. The original file on your device will not be affected.") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteFile(file.id)
                     fileForDelete = null
                 }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -390,7 +402,11 @@ private fun FileList(
             SwipeToDismissBox(
                 state = dismissState,
                 backgroundContent = {
-                    SwipeToDismissBackground(targetValue = dismissState.targetValue)
+                    SwipeToDismissBackground(
+                        targetValue = dismissState.targetValue,
+                        icon = Icons.Outlined.RemoveCircleOutline,
+                        contentDescription = "Remove from library",
+                    )
                 },
                 enableDismissFromStartToEnd = false,
             ) {
@@ -570,11 +586,11 @@ private fun AudioFileCard(
                             leadingIcon = { Icon(Icons.Default.Edit, null) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text("Remove from Library") },
                             onClick = { showMenu = false; onDelete() },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    Icons.Outlined.RemoveCircleOutline,
                                     null,
                                     tint = MaterialTheme.colorScheme.error,
                                 )

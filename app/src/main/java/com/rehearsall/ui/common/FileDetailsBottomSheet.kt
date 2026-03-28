@@ -40,6 +40,7 @@ fun FileDetailsBottomSheet(
     onRename: (String) -> Unit,
     onDelete: () -> Unit,
     onAddToPlaylist: (Long) -> Unit = {},
+    onCreatePlaylist: ((String) -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -132,6 +133,12 @@ fun FileDetailsBottomSheet(
                 onAddToPlaylist(playlistId)
             },
             onDismiss = { showPlaylistPicker = false },
+            onCreatePlaylist = onCreatePlaylist?.let { create ->
+                { name ->
+                    showPlaylistPicker = false
+                    create(name)
+                }
+            },
         )
     }
 }

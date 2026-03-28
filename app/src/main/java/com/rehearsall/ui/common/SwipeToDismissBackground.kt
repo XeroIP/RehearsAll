@@ -15,12 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeToDismissBackground(
     targetValue: SwipeToDismissBoxValue,
+    icon: ImageVector = Icons.Default.Delete,
     contentDescription: String = "Delete",
 ) {
     val color by animateColorAsState(
@@ -41,7 +43,7 @@ fun SwipeToDismissBackground(
         contentAlignment = Alignment.CenterEnd,
     ) {
         Icon(
-            Icons.Default.Delete,
+            icon,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onErrorContainer,
         )

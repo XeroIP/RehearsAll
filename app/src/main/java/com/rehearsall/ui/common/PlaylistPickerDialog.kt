@@ -10,12 +10,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,15 +32,52 @@ fun PlaylistPickerDialog(
     playlists: List<Playlist>,
     onSelect: (Long) -> Unit,
     onDismiss: () -> Unit,
+    onCreatePlaylist: ((String) -> Unit)? = null,
 ) {
+    var showNewPlaylistDialog by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add to playlist") },
         text = {
-            if (playlists.isEmpty()) {
-                Text("No playlists yet. Create one first.")
-            } else {
-                LazyColumn {
+            LazyColumn {
+                // "New Playlist" option — always shown
+                if (onCreatePlaylist != null) {
+                    item(key = "new-playlist") {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showNewPlaylistDialog = true }
+                                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "New Playlist",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+
+                    if (playlists.isNotEmpty()) {
+                        item(key = "divider") {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                    }
+                }
+
+                if (playlists.isEmpty() && onCreatePlaylist == null) {
+                    item(key = "empty") {
+                        Text("No playlists yet. Create one first.")
+                    }
+                } else {
                     items(items = playlists, key = { it.id }) { playlist ->
                         Row(
                             modifier =
@@ -66,4 +109,16 @@ fun PlaylistPickerDialog(
             }
         },
     )
+
+    if (showNewPlaylistDialog) {
+        SingleFieldInputDialog(
+            title = "New playlist",
+            confirmLabel = "Create",
+            onConfirm = { name ->
+                showNewPlaylistDialog = false
+                onCreatePlaylist?.invoke(name)
+            },
+            onDismiss = { showNewPlaylistDialog = false },
+        )
+    }
 }
