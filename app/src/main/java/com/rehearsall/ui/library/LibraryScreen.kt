@@ -29,7 +29,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -443,7 +443,7 @@ private fun SelectionBar(
             enabled = selectedCount > 0,
         ) {
             Icon(
-                imageVector = Icons.Default.PlaylistAdd,
+                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                 contentDescription = "Add selected to playlist",
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -557,7 +557,7 @@ private fun AudioFileCard(
                         DropdownMenuItem(
                             text = { Text("Add to Playlist") },
                             onClick = { showMenu = false; onAddToPlaylist() },
-                            leadingIcon = { Icon(Icons.Default.PlaylistAdd, null) },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
                         )
                         DropdownMenuItem(
                             text = { Text("File Details") },
