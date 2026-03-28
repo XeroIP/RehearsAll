@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rehearsall.data.repository.PlaylistRepository
+import com.rehearsall.domain.model.PlaylistItem
 import com.rehearsall.domain.model.QueueItem
 import com.rehearsall.playback.PlaybackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -90,19 +91,10 @@ class PlaylistViewModel
             }
         }
 
-        fun reorderItems(
-            fromIndex: Int,
-            toIndex: Int,
-        ) {
-            val state = _uiState.value as? PlaylistUiState.Loaded ?: return
-            val items = state.items.toMutableList()
-            val item = items.removeAt(fromIndex)
-            items.add(toIndex, item)
-
-            // Update order indices
+        fun reorderItems(reorderedItems: List<PlaylistItem>) {
             viewModelScope.launch {
                 val updates =
-                    items.mapIndexed { index, playlistItem ->
+                    reorderedItems.mapIndexed { index, playlistItem ->
                         playlistItem.id to index
                     }
                 playlistRepository.reorderItems(playlistId, updates)

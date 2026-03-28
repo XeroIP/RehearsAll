@@ -191,7 +191,7 @@ fun PlaylistScreen(
                         items = state.items,
                         onItemClick = { index -> viewModel.playPlaylist(index) },
                         onRemove = { itemId -> viewModel.removeItem(itemId) },
-                        onReorder = { from, to -> viewModel.reorderItems(from, to) },
+                        onReorder = { reorderedItems -> viewModel.reorderItems(reorderedItems) },
                         modifier = Modifier.padding(innerPadding),
                     )
                 }
@@ -257,7 +257,7 @@ private fun PlaylistItemList(
     items: List<PlaylistItem>,
     onItemClick: (Int) -> Unit,
     onRemove: (Long) -> Unit,
-    onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
+    onReorder: (reorderedItems: List<PlaylistItem>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Local list tracks drag-in-progress order; resets when DB-backed items change.
@@ -270,7 +270,6 @@ private fun PlaylistItemList(
                 localItems.toMutableList().apply {
                     add(to.index, removeAt(from.index))
                 }
-            onReorder(from.index, to.index)
         }
 
     LazyColumn(
@@ -287,6 +286,15 @@ private fun PlaylistItemList(
                     targetValue = if (isDragging) 6.dp else 0.dp,
                     label = "drag-elevation",
                 )
+
+                // Persist reorder when drag ends
+                var wasDragging by remember { mutableStateOf(false) }
+                LaunchedEffect(isDragging) {
+                    if (wasDragging && !isDragging) {
+                        onReorder(localItems)
+                    }
+                    wasDragging = isDragging
+                }
 
                 val dismissState = rememberSwipeToDismissBoxState()
 

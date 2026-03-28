@@ -95,9 +95,8 @@ class PlaylistViewModelReorderTest {
     @Test
     fun `reorderItems calls repository with updated order pairs`() =
         runTest {
-            // Move index 0 (Alpha) to index 2 (after Gamma)
-            // Result should be: Beta(0), Gamma(1), Alpha(2)
-            viewModel.reorderItems(fromIndex = 0, toIndex = 2)
+            // Move Alpha to end: Beta(0), Gamma(1), Alpha(2)
+            viewModel.reorderItems(listOf(item2, item3, item1))
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify {
@@ -111,8 +110,8 @@ class PlaylistViewModelReorderTest {
     @Test
     fun `reorderItems moving down one step calls repository correctly`() =
         runTest {
-            // Move index 0 (Alpha) to index 1 → Beta(0), Alpha(1), Gamma(2)
-            viewModel.reorderItems(fromIndex = 0, toIndex = 1)
+            // Move Alpha down one: Beta(0), Alpha(1), Gamma(2)
+            viewModel.reorderItems(listOf(item2, item1, item3))
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify {
@@ -124,12 +123,11 @@ class PlaylistViewModelReorderTest {
         }
 
     @Test
-    fun `reorderItems moving item to same index does not crash`() =
+    fun `reorderItems with same order does not crash`() =
         runTest {
-            viewModel.reorderItems(fromIndex = 1, toIndex = 1)
+            viewModel.reorderItems(listOf(item1, item2, item3))
             testDispatcher.scheduler.advanceUntilIdle()
 
-            // Should still call through — no error
             coVerify {
                 playlistRepository.reorderItems(
                     playlistId = playlistId,
@@ -141,8 +139,8 @@ class PlaylistViewModelReorderTest {
     @Test
     fun `reorderItems moving last item to first position`() =
         runTest {
-            // Move index 2 (Gamma) to index 0 → Gamma(0), Alpha(1), Beta(2)
-            viewModel.reorderItems(fromIndex = 2, toIndex = 0)
+            // Move Gamma to front: Gamma(0), Alpha(1), Beta(2)
+            viewModel.reorderItems(listOf(item3, item1, item2))
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify {
