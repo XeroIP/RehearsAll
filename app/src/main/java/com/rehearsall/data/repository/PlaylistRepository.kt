@@ -29,9 +29,16 @@ interface PlaylistRepository {
 
     suspend fun deletePlaylist(id: Long)
 
+    suspend fun getFileIdsInPlaylist(playlistId: Long): Set<Long>
+
     suspend fun addFileToPlaylist(
         playlistId: Long,
         audioFileId: Long,
+    )
+
+    suspend fun addFilesToPlaylist(
+        playlistId: Long,
+        audioFileIds: List<Long>,
     )
 
     suspend fun removeItem(
@@ -90,6 +97,9 @@ class PlaylistRepositoryImpl
         override suspend fun deletePlaylist(id: Long) =
             playlistDao.delete(id) // CASCADE deletes items
 
+        override suspend fun getFileIdsInPlaylist(playlistId: Long): Set<Long> =
+            playlistItemDao.getFileIdsInPlaylist(playlistId).toSet()
+
         override suspend fun addFileToPlaylist(
             playlistId: Long,
             audioFileId: Long,
@@ -102,6 +112,22 @@ class PlaylistRepositoryImpl
                     orderIndex = maxOrder + 1,
                 ),
             )
+            playlistDao.touch(playlistId)
+        }
+
+        override suspend fun addFilesToPlaylist(
+            playlistId: Long,
+            audioFileIds: List<Long>,
+        ) {
+            val maxOrder = playlistItemDao.getMaxOrderIndex(playlistId) ?: -1
+            val entities = audioFileIds.mapIndexed { index, fileId ->
+                PlaylistItemEntity(
+                    playlistId = playlistId,
+                    audioFileId = fileId,
+                    orderIndex = maxOrder + 1 + index,
+                )
+            }
+            playlistItemDao.insertAll(entities)
             playlistDao.touch(playlistId)
         }
 

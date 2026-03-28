@@ -52,6 +52,9 @@ interface PlaylistItemDao {
     @Query("SELECT COUNT(*) FROM playlist_items WHERE playlistId = :playlistId")
     suspend fun getItemCount(playlistId: Long): Int
 
+    @Query("SELECT audioFileId FROM playlist_items WHERE playlistId = :playlistId")
+    suspend fun getFileIdsInPlaylist(playlistId: Long): List<Long>
+
     @Query(
         "SELECT COALESCE(SUM(af.durationMs), 0) FROM playlist_items pi " +
             "INNER JOIN audio_files af ON pi.audioFileId = af.id " +

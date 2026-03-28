@@ -1,6 +1,7 @@
 package com.rehearsall.ui.playlist
 
 import androidx.lifecycle.SavedStateHandle
+import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.PlaylistRepository
 import com.rehearsall.domain.model.Playlist
 import com.rehearsall.domain.model.PlaylistItem
@@ -74,6 +75,7 @@ class PlaylistViewModelReorderTest {
             PlaylistViewModel(
                 savedStateHandle = SavedStateHandle(mapOf("playlistId" to playlistId)),
                 playlistRepository = playlistRepository,
+                audioFileRepository = mockk(relaxed = true),
                 playbackManager = mockk(relaxed = true),
             )
 

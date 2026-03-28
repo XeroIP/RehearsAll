@@ -14,6 +14,8 @@ interface AudioFileRepository {
 
     fun getRecentFiles(limit: Int = 20): Flow<List<AudioFile>>
 
+    suspend fun getAllFilesList(): List<AudioFile>
+
     suspend fun getById(id: Long): AudioFile?
 
     suspend fun insert(entity: AudioFileEntity): Long
@@ -54,6 +56,9 @@ class AudioFileRepositoryImpl
         override fun getRecentFiles(limit: Int): Flow<List<AudioFile>> {
             return dao.getRecent(limit).map { entities -> entities.map { it.toDomain() } }
         }
+
+        override suspend fun getAllFilesList(): List<AudioFile> =
+            dao.getAllList().map { it.toDomain() }
 
         override suspend fun getById(id: Long): AudioFile? =
             dao.getById(id)?.toDomain()

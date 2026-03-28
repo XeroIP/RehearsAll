@@ -3,7 +3,9 @@ package com.rehearsall.ui.playlist
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rehearsall.data.repository.AudioFileRepository
 import com.rehearsall.data.repository.PlaylistRepository
+import com.rehearsall.domain.model.AudioFile
 import com.rehearsall.domain.model.PlaylistItem
 import com.rehearsall.domain.model.QueueItem
 import com.rehearsall.playback.PlaybackManager
@@ -26,6 +28,7 @@ class PlaylistViewModel
     constructor(
         savedStateHandle: SavedStateHandle,
         private val playlistRepository: PlaylistRepository,
+        private val audioFileRepository: AudioFileRepository,
         private val playbackManager: PlaybackManager,
     ) : ViewModel() {
         private val playlistId: Long =
@@ -37,6 +40,12 @@ class PlaylistViewModel
 
         private val _events = MutableSharedFlow<PlaylistEvent>()
         val events: SharedFlow<PlaylistEvent> = _events.asSharedFlow()
+
+        private val _allFiles = MutableStateFlow<List<AudioFile>>(emptyList())
+        val allFiles: StateFlow<List<AudioFile>> = _allFiles.asStateFlow()
+
+        private val _fileIdsInPlaylist = MutableStateFlow<Set<Long>>(emptySet())
+        val fileIdsInPlaylist: StateFlow<Set<Long>> = _fileIdsInPlaylist.asStateFlow()
 
         init {
             loadPlaylist()
@@ -108,6 +117,21 @@ class PlaylistViewModel
                 val current = _uiState.value as? PlaylistUiState.Loaded ?: return@launch
                 _uiState.value = current.copy(playlistName = newName.trim())
                 _events.emit(PlaylistEvent.PlaylistRenamed(newName.trim()))
+            }
+        }
+
+        fun loadFilesForPicker() {
+            viewModelScope.launch {
+                _allFiles.value = audioFileRepository.getAllFilesList()
+                _fileIdsInPlaylist.value = playlistRepository.getFileIdsInPlaylist(playlistId)
+            }
+        }
+
+        fun addTracks(fileIds: List<Long>) {
+            if (fileIds.isEmpty()) return
+            viewModelScope.launch {
+                playlistRepository.addFilesToPlaylist(playlistId, fileIds)
+                _events.emit(PlaylistEvent.TracksAdded(fileIds.size))
             }
         }
 

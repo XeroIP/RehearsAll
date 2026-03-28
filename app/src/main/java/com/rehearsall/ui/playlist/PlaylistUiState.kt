@@ -19,4 +19,6 @@ sealed interface PlaylistEvent {
     data class PlaylistDeleted(val name: String) : PlaylistEvent
 
     data class PlaylistRenamed(val newName: String) : PlaylistEvent
+
+    data class TracksAdded(val count: Int) : PlaylistEvent
 }

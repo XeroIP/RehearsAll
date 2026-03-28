@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -79,6 +81,10 @@ fun PlaylistScreen(
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
+    var showTrackPicker by remember { mutableStateOf(false) }
+
+    val allFiles by viewModel.allFiles.collectAsStateWithLifecycle()
+    val fileIdsInPlaylist by viewModel.fileIdsInPlaylist.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -91,6 +97,9 @@ fun PlaylistScreen(
                 }
                 is PlaylistEvent.PlaylistRenamed -> {
                     snackbarHostState.showSnackbar("Renamed to \"${event.newName}\"")
+                }
+                is PlaylistEvent.TracksAdded -> {
+                    snackbarHostState.showSnackbar("Added ${event.count} track${if (event.count > 1) "s" else ""}")
                 }
             }
         }
@@ -122,6 +131,15 @@ fun PlaylistScreen(
                             expanded = showOverflowMenu,
                             onDismissRequest = { showOverflowMenu = false },
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Add Tracks") },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    viewModel.loadFilesForPicker()
+                                    showTrackPicker = true
+                                },
+                                leadingIcon = { Icon(Icons.Default.Add, null) },
+                            )
                             DropdownMenuItem(
                                 text = { Text("Rename") },
                                 onClick = {
@@ -180,12 +198,32 @@ fun PlaylistScreen(
 
             is PlaylistUiState.Loaded -> {
                 if (state.items.isEmpty()) {
-                    EmptyStateMessage(
-                        icon = Icons.Default.MusicNote,
-                        title = "No tracks in this playlist",
-                        subtitle = "Long-press a file to add it to a playlist",
-                        modifier = Modifier.padding(innerPadding),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            EmptyStateMessage(
+                                icon = Icons.Default.MusicNote,
+                                title = "No tracks in this playlist",
+                                subtitle = "Add some tracks to get started",
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            Button(
+                                onClick = {
+                                    viewModel.loadFilesForPicker()
+                                    showTrackPicker = true
+                                },
+                                modifier = Modifier.padding(top = 16.dp),
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Add Tracks")
+                            }
+                        }
+                    }
                 } else {
                     PlaylistItemList(
                         items = state.items,
@@ -247,6 +285,19 @@ fun PlaylistScreen(
                     Text("Cancel")
                 }
             },
+        )
+    }
+
+    // Track picker bottom sheet
+    if (showTrackPicker) {
+        TrackPickerBottomSheet(
+            allFiles = allFiles,
+            alreadyInPlaylist = fileIdsInPlaylist,
+            onAddTracks = { fileIds ->
+                viewModel.addTracks(fileIds)
+                showTrackPicker = false
+            },
+            onDismiss = { showTrackPicker = false },
         )
     }
 }
