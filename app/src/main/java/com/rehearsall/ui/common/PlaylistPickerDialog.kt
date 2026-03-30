@@ -41,38 +41,6 @@ fun PlaylistPickerDialog(
         title = { Text("Add to playlist") },
         text = {
             LazyColumn {
-                // "New Playlist" option — always shown
-                if (onCreatePlaylist != null) {
-                    item(key = "new-playlist") {
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showNewPlaylistDialog = true }
-                                    .padding(vertical = 12.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "New Playlist",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-
-                    if (playlists.isNotEmpty()) {
-                        item(key = "divider") {
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                        }
-                    }
-                }
-
                 if (playlists.isEmpty() && onCreatePlaylist == null) {
                     item(key = "empty") {
                         Text("No playlists yet. Create one first.")
@@ -96,6 +64,38 @@ fun PlaylistPickerDialog(
                             Text(
                                 text = playlist.name,
                                 style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
+                    }
+                }
+
+                // "New Playlist" option — below existing playlists
+                if (onCreatePlaylist != null) {
+                    if (playlists.isNotEmpty()) {
+                        item(key = "divider") {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                    }
+
+                    item(key = "new-playlist") {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showNewPlaylistDialog = true }
+                                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "New Playlist",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }

@@ -120,10 +120,17 @@ class PlaylistViewModel
             }
         }
 
-        fun loadFilesForPicker() {
+        fun loadFilesForPicker(onReady: (hasAvailableFiles: Boolean) -> Unit) {
             viewModelScope.launch {
-                _allFiles.value = audioFileRepository.getAllFilesList()
-                _fileIdsInPlaylist.value = playlistRepository.getFileIdsInPlaylist(playlistId)
+                val allFiles = audioFileRepository.getAllFilesList()
+                val inPlaylist = playlistRepository.getFileIdsInPlaylist(playlistId)
+                _allFiles.value = allFiles
+                _fileIdsInPlaylist.value = inPlaylist
+                val hasAvailable = allFiles.any { it.id !in inPlaylist }
+                if (!hasAvailable) {
+                    _events.emit(PlaylistEvent.AllFilesAlreadyAdded)
+                }
+                onReady(hasAvailable)
             }
         }
 

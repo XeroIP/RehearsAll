@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -101,6 +100,9 @@ fun PlaylistScreen(
                 is PlaylistEvent.TracksAdded -> {
                     snackbarHostState.showSnackbar("Added ${event.count} track${if (event.count > 1) "s" else ""}")
                 }
+                is PlaylistEvent.AllFilesAlreadyAdded -> {
+                    snackbarHostState.showSnackbar("All files are already in this playlist")
+                }
             }
         }
     }
@@ -135,8 +137,9 @@ fun PlaylistScreen(
                                 text = { Text("Add Tracks") },
                                 onClick = {
                                     showOverflowMenu = false
-                                    viewModel.loadFilesForPicker()
-                                    showTrackPicker = true
+                                    viewModel.loadFilesForPicker { hasFiles ->
+                                        if (hasFiles) showTrackPicker = true
+                                    }
                                 },
                                 leadingIcon = { Icon(Icons.Default.Add, null) },
                             )
@@ -169,14 +172,17 @@ fun PlaylistScreen(
             )
         },
         floatingActionButton = {
-            val state = uiState
-            if (state is PlaylistUiState.Loaded && state.items.isNotEmpty()) {
+            if (uiState is PlaylistUiState.Loaded) {
                 FloatingActionButton(
-                    onClick = { viewModel.playPlaylist() },
+                    onClick = {
+                        viewModel.loadFilesForPicker { hasFiles ->
+                            if (hasFiles) showTrackPicker = true
+                        }
+                    },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = "Play playlist")
+                    Icon(Icons.Default.Add, contentDescription = "Add tracks")
                 }
             }
         },
@@ -198,32 +204,12 @@ fun PlaylistScreen(
 
             is PlaylistUiState.Loaded -> {
                 if (state.items.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            EmptyStateMessage(
-                                icon = Icons.Default.MusicNote,
-                                title = "No tracks in this playlist",
-                                subtitle = "Add some tracks to get started",
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                            Button(
-                                onClick = {
-                                    viewModel.loadFilesForPicker()
-                                    showTrackPicker = true
-                                },
-                                modifier = Modifier.padding(top = 16.dp),
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Add Tracks")
-                            }
-                        }
-                    }
+                    EmptyStateMessage(
+                        icon = Icons.Default.MusicNote,
+                        title = "No tracks in this playlist",
+                        subtitle = "Tap + to add tracks",
+                        modifier = Modifier.padding(innerPadding),
+                    )
                 } else {
                     PlaylistItemList(
                         items = state.items,
