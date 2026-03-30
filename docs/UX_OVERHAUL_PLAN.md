@@ -184,15 +184,16 @@ Phase 3 is tracked separately in [UX_PHASE3_PLAN.md](UX_PHASE3_PLAN.md). It cove
 | 3 | Create playlist from picker when empty | 1.3 | #43 |
 | 4 | Library swipe = "Remove from library" | 1.3 | #44 |
 | 5 | Move "New Playlist" below existing in picker | 1.3 | #47 |
-| 6 | Add tracks from playlist | 1.6 | #25 |
-| 7 | Contextual empty states | 1.4 | #28 |
-| 8 | Import progress indicator | 1.5 | #18 |
-| 9 | Skippable onboarding | 1.1 | #29 |
-| 10 | Search | 2.1 | #30 |
-| 11 | Playlist visual identity | 2.2 | #31 |
-| 12 | Sorting & filtering | 2.3 | #32 |
-| 13 | Playback progressive disclosure | 2.4 | #33 |
-| 14 | Gesture hints | 2.5 | #34 |
+| 6 | Persistent add-tracks button on playlist screen | 1.6 | #48 |
+| 7 | Add tracks from playlist | 1.6 | #25 |
+| 8 | Contextual empty states | 1.4 | #28 |
+| 9 | Import progress indicator | 1.5 | #18 |
+| 10 | Skippable onboarding | 1.1 | #29 |
+| 11 | Search | 2.1 | #30 |
+| 12 | Playlist visual identity | 2.2 | #31 |
+| 13 | Sorting & filtering | 2.3 | #32 |
+| 14 | Playback progressive disclosure | 2.4 | #33 |
+| 15 | Gesture hints | 2.5 | #34 |
 
 Phase 3 items (12–17) are tracked in [UX_PHASE3_PLAN.md](UX_PHASE3_PLAN.md).
 
