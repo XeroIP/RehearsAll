@@ -33,6 +33,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Always higher than any release versionCode so sideloaded debug APKs
+            // can install over previous builds without uninstalling first.
+            defaultConfig.versionCode = 99999
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
