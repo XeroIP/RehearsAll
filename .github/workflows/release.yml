@@ -34,19 +34,30 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Unit tests
-        run: ./gradlew testReleaseUnitTest
+      - name: Determine track
+        id: track
+        run: |
+          if [[ "${{ github.ref_name }}" == *beta* || "${{ github.ref_name }}" == *alpha* || "${{ github.ref_name }}" == *rc* ]]; then
+            echo "build_type=beta" >> "$GITHUB_OUTPUT"
+            echo "gradle_suffix=Beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "build_type=release" >> "$GITHUB_OUTPUT"
+            echo "gradle_suffix=Release" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Build release APK
+      - name: Unit tests
+        run: ./gradlew test${{ steps.track.outputs.gradle_suffix }}UnitTest
+
+      - name: Build APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assemble${{ steps.track.outputs.gradle_suffix }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/RehearsAll-*.apk
+          files: app/build/outputs/apk/${{ steps.track.outputs.build_type }}/RehearsAll-*.apk
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
+          prerelease: ${{ steps.track.outputs.build_type == 'beta' }}

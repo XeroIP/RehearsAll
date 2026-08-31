@@ -34,9 +34,9 @@ android {
 
     buildTypes {
         debug {
-            // Always higher than any release versionCode so sideloaded debug APKs
-            // can install over previous builds without uninstalling first.
-            defaultConfig.versionCode = 99999
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            resValue("string", "app_name", "RehearsAll Dev")
         }
         release {
             isMinifyEnabled = true
@@ -47,6 +47,21 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            resValue("string", "app_name", "RehearsAll")
+        }
+        create("nightly") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".nightly"
+            versionNameSuffix = "-nightly"
+            matchingFallbacks += "release"
+            resValue("string", "app_name", "RehearsAll Nightly")
+        }
+        create("beta") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".beta"
+            versionNameSuffix = "-beta"
+            matchingFallbacks += "release"
+            resValue("string", "app_name", "RehearsAll Beta")
         }
     }
 
