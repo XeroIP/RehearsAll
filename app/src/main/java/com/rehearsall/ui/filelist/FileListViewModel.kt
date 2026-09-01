@@ -9,14 +9,14 @@ import com.rehearsall.data.repository.PlaylistRepository
 import com.rehearsall.domain.model.QueueItem
 import com.rehearsall.playback.PlaybackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -87,13 +87,14 @@ class FileListViewModel
             viewModelScope.launch {
                 _isImporting.value = true
                 val semaphore = Semaphore(3)
-                val results = uris.map { uri ->
-                    async {
-                        semaphore.withPermit {
-                            importer.import(uri)
+                val results =
+                    uris.map { uri ->
+                        async {
+                            semaphore.withPermit {
+                                importer.import(uri)
+                            }
                         }
-                    }
-                }.awaitAll()
+                    }.awaitAll()
 
                 var successCount = 0
                 var errorCount = 0

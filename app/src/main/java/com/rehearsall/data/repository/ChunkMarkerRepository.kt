@@ -66,8 +66,7 @@ class ChunkMarkerRepositoryImpl
             positionMs: Long,
         ) = dao.updatePosition(id, positionMs)
 
-        override suspend fun deleteMarker(id: Long) =
-            dao.delete(id)
+        override suspend fun deleteMarker(id: Long) = dao.delete(id)
     }
 
 private fun ChunkMarkerEntity.toDomain(): ChunkMarker =

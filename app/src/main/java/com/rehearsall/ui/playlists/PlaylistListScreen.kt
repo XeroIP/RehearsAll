@@ -286,17 +286,26 @@ private fun PlaylistCard(
                 ) {
                     DropdownMenuItem(
                         text = { Text("Play All") },
-                        onClick = { showMenu = false; onPlayAll() },
+                        onClick = {
+                            showMenu = false
+                            onPlayAll()
+                        },
                         leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
                     )
                     DropdownMenuItem(
                         text = { Text("Rename") },
-                        onClick = { showMenu = false; onRename() },
+                        onClick = {
+                            showMenu = false
+                            onRename()
+                        },
                         leadingIcon = { Icon(Icons.Default.Edit, null) },
                     )
                     DropdownMenuItem(
                         text = { Text("Delete") },
-                        onClick = { showMenu = false; onDelete() },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Delete,

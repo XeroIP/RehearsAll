@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -354,13 +353,14 @@ private fun PlaylistItemList(
                 ) {
                     Card(
                         elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-                        colors = if (isDragging) {
-                            CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            )
-                        } else {
-                            CardDefaults.cardColors()
-                        },
+                        colors =
+                            if (isDragging) {
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                )
+                            } else {
+                                CardDefaults.cardColors()
+                            },
                     ) {
                         PlaylistTrackRow(
                             index = index + 1,
@@ -442,12 +442,18 @@ private fun PlaylistTrackRow(
             ) {
                 DropdownMenuItem(
                     text = { Text("Play") },
-                    onClick = { showMenu = false; onPlay() },
+                    onClick = {
+                        showMenu = false
+                        onPlay()
+                    },
                     leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
                 )
                 DropdownMenuItem(
                     text = { Text("Remove from Playlist") },
-                    onClick = { showMenu = false; onRemove() },
+                    onClick = {
+                        showMenu = false
+                        onRemove()
+                    },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Delete,
@@ -467,4 +473,3 @@ private fun PlaylistTrackRow(
         )
     }
 }
-

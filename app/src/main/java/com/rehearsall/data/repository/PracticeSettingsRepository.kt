@@ -22,8 +22,7 @@ class PracticeSettingsRepositoryImpl
     constructor(
         private val dao: PracticeSettingsDao,
     ) : PracticeSettingsRepository {
-        override suspend fun getForFile(audioFileId: Long): PracticeSettings =
-            dao.getForFile(audioFileId)?.toDomain() ?: PracticeSettings()
+        override suspend fun getForFile(audioFileId: Long): PracticeSettings = dao.getForFile(audioFileId)?.toDomain() ?: PracticeSettings()
 
         override suspend fun save(
             audioFileId: Long,

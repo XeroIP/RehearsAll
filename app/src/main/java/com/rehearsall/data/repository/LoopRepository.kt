@@ -47,8 +47,7 @@ class LoopRepositoryImpl
             }
         }
 
-        override suspend fun getLoopsForFileList(audioFileId: Long): List<Loop> =
-            dao.getAllForFileList(audioFileId).map { it.toDomain() }
+        override suspend fun getLoopsForFileList(audioFileId: Long): List<Loop> = dao.getAllForFileList(audioFileId).map { it.toDomain() }
 
         override suspend fun saveLoop(
             audioFileId: Long,
@@ -77,8 +76,7 @@ class LoopRepositoryImpl
             endMs: Long,
         ) = dao.updateRegion(id, startMs, endMs)
 
-        override suspend fun deleteLoop(id: Long) =
-            dao.delete(id)
+        override suspend fun deleteLoop(id: Long) = dao.delete(id)
     }
 
 private fun LoopEntity.toDomain(): Loop =

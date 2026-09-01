@@ -15,7 +15,9 @@ import javax.inject.Inject
 
 sealed interface RecentsUiState {
     data object Loading : RecentsUiState
+
     data class Loaded(val files: List<AudioFile>) : RecentsUiState
+
     data class Error(val message: String) : RecentsUiState
 }
 

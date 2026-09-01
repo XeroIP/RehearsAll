@@ -57,17 +57,13 @@ class AudioFileRepositoryImpl
             return dao.getRecent(limit).map { entities -> entities.map { it.toDomain() } }
         }
 
-        override suspend fun getAllFilesList(): List<AudioFile> =
-            dao.getAllList().map { it.toDomain() }
+        override suspend fun getAllFilesList(): List<AudioFile> = dao.getAllList().map { it.toDomain() }
 
-        override suspend fun getById(id: Long): AudioFile? =
-            dao.getById(id)?.toDomain()
+        override suspend fun getById(id: Long): AudioFile? = dao.getById(id)?.toDomain()
 
-        override suspend fun insert(entity: AudioFileEntity): Long =
-            dao.insert(entity)
+        override suspend fun insert(entity: AudioFileEntity): Long = dao.insert(entity)
 
-        override suspend fun delete(id: Long) =
-            dao.delete(id)
+        override suspend fun delete(id: Long) = dao.delete(id)
 
         override suspend fun updateDisplayName(
             id: Long,

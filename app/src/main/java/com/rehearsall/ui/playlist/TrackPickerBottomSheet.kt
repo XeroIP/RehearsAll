@@ -1,7 +1,6 @@
 package com.rehearsall.ui.playlist
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -52,9 +51,10 @@ fun TrackPickerBottomSheet(
         sheetState = sheetState,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
         ) {
             Text(
                 text = "Add Tracks",
@@ -71,9 +71,10 @@ fun TrackPickerBottomSheet(
                 )
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .weight(1f, fill = false)
+                            .fillMaxWidth(),
                 ) {
                     items(
                         items = availableFiles,
@@ -82,16 +83,17 @@ fun TrackPickerBottomSheet(
                         val isSelected = file.id in selectedIds
 
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (isSelected) {
-                                        selectedIds.remove(file.id)
-                                    } else {
-                                        selectedIds.add(file.id)
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (isSelected) {
+                                            selectedIds.remove(file.id)
+                                        } else {
+                                            selectedIds.add(file.id)
+                                        }
                                     }
-                                }
-                                .padding(vertical = 8.dp),
+                                    .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (isSelected) {
@@ -144,16 +146,18 @@ fun TrackPickerBottomSheet(
                 Button(
                     onClick = { onAddTracks(selectedIds.toList()) },
                     enabled = selectedIds.isNotEmpty(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
                 ) {
                     Text(
-                        text = if (selectedIds.isEmpty()) {
-                            "Select tracks to add"
-                        } else {
-                            "Add ${selectedIds.size} track${if (selectedIds.size > 1) "s" else ""}"
-                        },
+                        text =
+                            if (selectedIds.isEmpty()) {
+                                "Select tracks to add"
+                            } else {
+                                "Add ${selectedIds.size} track${if (selectedIds.size > 1) "s" else ""}"
+                            },
                     )
                 }
             }

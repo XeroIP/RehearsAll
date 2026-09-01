@@ -67,8 +67,7 @@ class BookmarkRepositoryImpl
             positionMs: Long,
         ) = dao.updatePosition(id, positionMs)
 
-        override suspend fun deleteBookmark(id: Long) =
-            dao.delete(id)
+        override suspend fun deleteBookmark(id: Long) = dao.delete(id)
     }
 
 private fun BookmarkEntity.toDomain(): Bookmark =

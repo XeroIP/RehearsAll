@@ -133,12 +133,13 @@ fun FileDetailsBottomSheet(
                 onAddToPlaylist(playlistId)
             },
             onDismiss = { showPlaylistPicker = false },
-            onCreatePlaylist = onCreatePlaylist?.let { create ->
-                { name ->
-                    showPlaylistPicker = false
-                    create(name)
-                }
-            },
+            onCreatePlaylist =
+                onCreatePlaylist?.let { create ->
+                    { name ->
+                        showPlaylistPicker = false
+                        create(name)
+                    }
+                },
         )
     }
 }

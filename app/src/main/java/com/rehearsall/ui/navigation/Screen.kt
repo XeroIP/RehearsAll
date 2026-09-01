@@ -12,7 +12,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class Screen(val route: String) {
     // Bottom nav destinations
     data object Library : Screen("library")
+
     data object PlaylistList : Screen("playlist_list")
+
     data object Recents : Screen("recents")
 
     // Detail screens

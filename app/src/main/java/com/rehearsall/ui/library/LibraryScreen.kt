@@ -19,19 +19,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,7 +50,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -68,7 +66,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rehearsall.domain.model.AudioFile
-import com.rehearsall.domain.model.Playlist
 import com.rehearsall.ui.common.EmptyStateMessage
 import com.rehearsall.ui.common.FileDetailsBottomSheet
 import com.rehearsall.ui.common.PlaylistPickerDialog
@@ -567,27 +564,42 @@ private fun AudioFileCard(
                     ) {
                         DropdownMenuItem(
                             text = { Text("Play") },
-                            onClick = { showMenu = false; onPlay() },
+                            onClick = {
+                                showMenu = false
+                                onPlay()
+                            },
                             leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
                         )
                         DropdownMenuItem(
                             text = { Text("Add to Playlist") },
-                            onClick = { showMenu = false; onAddToPlaylist() },
+                            onClick = {
+                                showMenu = false
+                                onAddToPlaylist()
+                            },
                             leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
                         )
                         DropdownMenuItem(
                             text = { Text("File Details") },
-                            onClick = { showMenu = false; onDetails() },
+                            onClick = {
+                                showMenu = false
+                                onDetails()
+                            },
                             leadingIcon = { Icon(Icons.Default.Info, null) },
                         )
                         DropdownMenuItem(
                             text = { Text("Rename") },
-                            onClick = { showMenu = false; onRename() },
+                            onClick = {
+                                showMenu = false
+                                onRename()
+                            },
                             leadingIcon = { Icon(Icons.Default.Edit, null) },
                         )
                         DropdownMenuItem(
                             text = { Text("Remove from Library") },
-                            onClick = { showMenu = false; onDelete() },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            },
                             leadingIcon = {
                                 Icon(
                                     Icons.Outlined.RemoveCircleOutline,
