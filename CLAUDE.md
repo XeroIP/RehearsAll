@@ -141,3 +141,7 @@ Keeping it current:
 - If STATUS.md has a merge conflict, don't hand-merge it. Write a fresh STATUS.md from both versions and the merged code, then continue the merge.
 - STATUS.md is committed and may be public. Never put credentials, tokens, IP addresses, hostnames, internal URLs, or personal details in it; describe them generically ("the home server", "the API key").
 <!-- shift-change:end -->
+
+## Repo-specific
+
+- `main` is protected (required `build` check). Do work and STATUS.md handoffs on `dev`; never commit to `main` directly. This overrides the "including main" line in the status block above.
